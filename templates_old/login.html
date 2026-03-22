@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card small">
+  <h1>登入 Createx Office</h1>
+  <p class="muted">預設帳號：admin｜密碼：admin1234（可自行改）</p>
+  <form method="post" class="form">
+    <label>帳號</label>
+    <input name="username" placeholder="admin" required />
+    <label>密碼</label>
+    <input name="password" type="password" placeholder="admin1234" required />
+    <button class="btn" type="submit">登入</button>
+  </form>
+</div>
+{% endblock %}
