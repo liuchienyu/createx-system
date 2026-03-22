@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+  <h1>Pipeline Board</h1>
+  <div class="row gap">
+    <a class="btn" href="{{ url_for('partner_new') }}">新增 Partner</a>
+    <a class="btn ghost" href="{{ url_for('partners') }}">回清單</a>
+  </div>
+</div>
+
+<div class="board">
+  {% for s in stages %}
+    <div class="col">
+      <div class="col-head">
+        <div class="col-title">{{ s }}</div>
+        <div class="col-count">{{ columns[s] | length }}</div>
+      </div>
+
+      <div class="col-body">
+        {% for r in columns[s] %}
+          <div class="card mini">
+            <div class="title">
+              <b>{{ r["company"] }}</b>
+            </div>
+
+            <div class="muted" style="margin-top:6px">
+              {% if r["contact"] %}👤 {{ r["contact"] }}{% endif %}
+              {% if r["phone"] %}<div>📞 {{ r["phone"] }}</div>{% endif %}
+              {% if r["email"] %}<div>✉️ {{ r["email"] }}</div>{% endif %}
+            </div>
+
+            {% if r["next_action"] %}
+              <div style="margin-top:10px">
+                <div class="muted" style="font-size:12px">Next Action</div>
+                <div>{{ r["next_action"] }}</div>
+              </div>
+            {% endif %}
+
+            {% if r["next_due"] %}
+              <div style="margin-top:10px">
+                <span class="pill">Due: {{ r["next_due"] }}</span>
+              </div>
+            {% endif %}
+
+            <div class="actions" style="margin-top:12px">
+              <a class="btn tiny ghost" href="{{ url_for('partner_edit', partner_id=r['id']) }}">編輯</a>
+              <form method="post" action="{{ url_for('partner_delete', partner_id=r['id']) }}" onsubmit="return confirm('確定刪除？')">
+                <button class="btn tiny danger" type="submit">刪除</button>
+              </form>
+            </div>
+          </div>
+        {% else %}
+          <div class="muted">（空）</div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

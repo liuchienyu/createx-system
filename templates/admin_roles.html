@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>後台｜角色與權限</h1>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>角色</th>
+        <th>描述</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in roles %}
+        <tr>
+          <td>{{ r["id"] }}</td>
+          <td><b>{{ r["name"] }}</b></td>
+          <td class="muted">{{ r["description"] or "-" }}</td>
+          <td><a class="btn tiny ghost" href="{{ url_for('admin_role_edit', role_id=r['id']) }}">編輯權限</a></td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

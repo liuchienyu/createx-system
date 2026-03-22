@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ "新增 Talent" if mode=="new" else "編輯 Talent" }}</h1>
+
+<div class="card">
+  <form method="post" class="form">
+    <label>藝名/暱稱（必填）</label>
+    <input name="stage_name" value="{{ item.get('stage_name','') }}" required>
+
+    <label>本名</label>
+    <input name="real_name" value="{{ item.get('real_name','') }}">
+
+    <div class="grid2">
+      <div>
+        <label>電話</label>
+        <input name="phone" value="{{ item.get('phone','') }}">
+      </div>
+      <div>
+        <label>Email</label>
+        <input name="email" value="{{ item.get('email','') }}">
+      </div>
+    </div>
+
+    <label>狀態</label>
+    <select name="status">
+      {% set s=item.get('status','talking') %}
+      <option value="talking" {{ "selected" if s=="talking" else "" }}>talking</option>
+      <option value="signed" {{ "selected" if s=="signed" else "" }}>signed</option>
+      <option value="paused" {{ "selected" if s=="paused" else "" }}>paused</option>
+    </select>
+
+    <label>報價備註（例如：出席費區間、抽成規則）</label>
+    <input name="price_note" value="{{ item.get('price_note','') }}">
+
+    <label>備註</label>
+    <textarea name="notes" rows="6">{{ item.get('notes','') }}</textarea>
+
+    <div class="row">
+      <button class="btn" type="submit">儲存</button>
+      <a class="btn ghost" href="{{ url_for('talents') }}">返回</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Dashboard</h1>
+
+{% if my_approval_items is defined %}
+<div class="card" style="margin-top:12px;">
+  <div class="row" style="justify-content:space-between; align-items:center;">
+    <h2 style="margin:0;">待我簽核公文</h2>
+    <a class="btn tiny ghost" href="{{ url_for('approvals') }}">前往公文簽核</a>
+  </div>
+
+  {% if my_approval_items|length == 0 %}
+    <div class="muted" style="margin-top:10px;">目前沒有需要你簽核的公文。</div>
+  {% else %}
+    <table style="margin-top:10px;">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>標題</th>
+          <th>類型</th>
+          <th>狀態</th>
+          <th>目前層級</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in my_approval_items %}
+          <tr>
+            <td>#{{ r['id'] }}</td>
+            <td>{{ r['title'] }}</td>
+            <td>{{ r['type'] }}</td>
+            <td><span class="pill">{{ r['status'] }}</span></td>
+            <td>第 {{ r['current_step'] }} 層</td>
+            <td>
+              <a class="btn tiny ghost" href="{{ url_for('approval_detail', doc_id=r['id']) }}">查看</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if my_returned_approval_items is defined %}
+<div class="card" style="margin-top:12px;">
+  <div class="row" style="justify-content:space-between; align-items:center;">
+    <h2 style="margin:0;">被退回待重送公文</h2>
+    <a class="btn tiny ghost" href="{{ url_for('approvals') }}">前往公文簽核</a>
+  </div>
+
+  {% if my_returned_approval_items|length == 0 %}
+    <div class="muted" style="margin-top:10px;">目前沒有被退回的公文。</div>
+  {% else %}
+    <table style="margin-top:10px;">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>標題</th>
+          <th>類型</th>
+          <th>狀態</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in my_returned_approval_items %}
+          <tr>
+            <td>#{{ r['id'] }}</td>
+            <td>{{ r['title'] }}</td>
+            <td>{{ r['type'] }}</td>
+            <td><span class="pill">{{ r['status'] }}</span></td>
+            <td>
+              <a class="btn tiny ghost" href="{{ url_for('approval_detail', doc_id=r['id']) }}">查看</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if tasks_overdue is defined %}
+  <div class="card" style="margin-top:12px">
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <h2 style="margin:0">Tasks 提醒</h2>
+      <a class="btn tiny ghost" href="{{ url_for('tasks') }}">前往 Tasks</a>
+    </div>
+
+    {% if (tasks_overdue|length + tasks_due_today|length + tasks_due7|length) == 0 %}
+      <div class="muted" style="margin-top:10px">目前沒有到期或逾期的待辦 🎉</div>
+    {% else %}
+      {% if tasks_overdue|length > 0 %}
+        <h3 style="margin-top:12px">逾期</h3>
+        <ul>
+          {% for t in tasks_overdue %}
+            <li>⚠ {{ t["due_date"] }}｜<b>{{ t["title"] }}</b>{% if t["assignee"] %}（{{ t["assignee"] }}）{% endif %}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
+      {% if tasks_due_today|length > 0 %}
+        <h3 style="margin-top:12px">今日到期</h3>
+        <ul>
+          {% for t in tasks_due_today %}
+            <li>📌 {{ t["due_date"] }}｜<b>{{ t["title"] }}</b>{% if t["assignee"] %}（{{ t["assignee"] }}）{% endif %}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
+      {% if tasks_due7|length > 0 %}
+        <h3 style="margin-top:12px">7 天內到期</h3>
+        <ul>
+          {% for t in tasks_due7 %}
+            <li>⏳ {{ t["due_date"] }}｜<b>{{ t["title"] }}</b>{% if t["assignee"] %}（{{ t["assignee"] }}）{% endif %}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endif %}
+  </div>
+{% endif %}
+
+<div class="grid3">
+  <div class="stat">
+    <div class="k">Talents</div><div class="v">{{ stats.talents }}</div>
+  </div>
+  <div class="stat">
+    <div class="k">Projects</div><div class="v">{{ stats.projects }}</div>
+  </div>
+  <div class="stat">
+    <div class="k">Partnerships</div><div class="v">{{ stats.partners }}</div>
+  </div>
+</div>
+
+<div class="grid2">
+  <div class="card">
+    <h2>近期專案（依日期）</h2>
+    <table>
+      <thead><tr><th>日期</th><th>名稱</th><th>地點</th><th>狀態</th></tr></thead>
+      <tbody>
+        {% for r in upcoming %}
+          <tr>
+            <td>{{ r["date"] }}</td>
+            <td>{{ r["name"] }}</td>
+            <td>{{ r["location"] }}</td>
+            <td><span class="pill">{{ r["status"] }}</span></td>
+          </tr>
+        {% else %}
+          <tr><td colspan="4" class="muted">尚無資料</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>合作管線分布</h2>
+    <table>
+      <thead><tr><th>Stage</th><th>Count</th></tr></thead>
+      <tbody>
+        {% for r in pipeline %}
+          <tr><td>{{ r["stage"] }}</td><td>{{ r["c"] }}</td></tr>
+        {% else %}
+          <tr><td colspan="2" class="muted">尚無資料</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card" style="margin-top:16px">
+  <div class="row" style="justify-content:space-between;align-items:center">
+    <h2 style="margin:0">Finance 提醒</h2>
+    <div class="muted">{{ today }} ～ {{ in7 }}</div>
+  </div>
+
+  <div class="grid2" style="margin-top:12px">
+    <div>
+      <h3 style="margin:0 0 8px 0">AR 應收：7 天內到期</h3>
+      {% if ar_due7 and ar_due7|length > 0 %}
+        <ul>
+          {% for r in ar_due7 %}
+            <li>
+              <b>{{ r["title"] or ("#"+r["id"]|string) }}</b>｜{{ r["amount"] }}｜Due {{ r["due_date"] }}
+              <a class="btn tiny ghost" href="{{ url_for('finance_edit', fid=r['id']) }}">查看</a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="muted">無</div>
+      {% endif %}
+
+      <h3 style="margin:14px 0 8px 0">AR 應收：逾期</h3>
+      {% if ar_over and ar_over|length > 0 %}
+        <ul>
+          {% for r in ar_over %}
+            <li>
+              <b>{{ r["title"] or ("#"+r["id"]|string) }}</b>｜{{ r["amount"] }}｜Due {{ r["due_date"] }}
+              <a class="btn tiny ghost" href="{{ url_for('finance_edit', fid=r['id']) }}">處理</a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="muted">無</div>
+      {% endif %}
+    </div>
+
+    <div>
+      <h3 style="margin:0 0 8px 0">AP 應付：7 天內到期</h3>
+      {% if ap_due7 and ap_due7|length > 0 %}
+        <ul>
+          {% for r in ap_due7 %}
+            <li>
+              <b>{{ r["title"] or ("#"+r["id"]|string) }}</b>｜{{ r["amount"] }}｜Due {{ r["due_date"] }}
+              <a class="btn tiny ghost" href="{{ url_for('finance_edit', fid=r['id']) }}">查看</a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="muted">無</div>
+      {% endif %}
+
+      <h3 style="margin:14px 0 8px 0">AP 應付：逾期</h3>
+      {% if ap_over and ap_over|length > 0 %}
+        <ul>
+          {% for r in ap_over %}
+            <li>
+              <b>{{ r["title"] or ("#"+r["id"]|string) }}</b>｜{{ r["amount"] }}｜Due {{ r["due_date"] }}
+              <a class="btn tiny ghost" href="{{ url_for('finance_edit', fid=r['id']) }}">處理</a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="muted">無</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div style="margin-top:12px">
+    <a class="btn ghost" href="{{ url_for('finance') }}">前往 Finance</a>
+  </div>
+</div>
+
+{% endblock %}

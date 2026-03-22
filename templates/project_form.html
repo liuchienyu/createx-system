@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ "新增 Project" if mode=="new" else "編輯 Project" }}</h1>
+
+<div class="card">
+  <form method="post" class="form">
+    <label>專案名稱（必填）</label>
+    <input name="name" value="{{ item.get('name','') if item is mapping else item.name }}" required>
+
+    <div class="grid2">
+      <div>
+        <label>日期（YYYY-MM-DD）</label>
+        <input name="date" value="{{ item.get('date','') if item is mapping else (item.date or '') }}" placeholder="2026-03-15">
+      </div>
+      <div>
+        <label>地點</label>
+        <input name="location" value="{{ item.get('location','') if item is mapping else (item.location or '') }}">
+      </div>
+    </div>
+
+    <label>負責人（Owner）</label>
+    <input name="owner" value="{{ item.get('owner','') if item is mapping else (item.owner or '') }}">
+
+    <div class="grid2">
+      <div>
+        <label>預估收入（整數）</label>
+        <input name="budget_income" type="number" step="1" min="0" value="{{ item.get('budget_income','0') if item is mapping else (item.budget_income or 0) }}">
+      </div>
+      <div>
+        <label>預估成本（整數）</label>
+        <input name="budget_cost" type="number" step="1" min="0" value="{{ item.get('budget_cost','0') if item is mapping else (item.budget_cost or 0) }}">
+      </div>
+    </div>
+
+    <label>狀態</label>
+    {% set s = (item.get('status','planning') if item is mapping else (item.status or 'planning')) %}
+    <select name="status">
+      <option value="planning" {{ "selected" if s=="planning" else "" }}>planning</option>
+      <option value="running" {{ "selected" if s=="running" else "" }}>running</option>
+      <option value="closed" {{ "selected" if s=="closed" else "" }}>closed</option>
+    </select>
+
+    <label>指派女孩（可多選）</label>
+    <div class="card" style="padding:12px">
+      <div class="muted" style="margin-bottom:10px">勾選本場出席/拍攝女孩。若同日已被排到其他活動，儲存時會跳出衝突警示。</div>
+      <div class="grid2">
+        {% for t in talents %}
+          <label style="display:flex;gap:10px;align-items:center;border:1px solid var(--line);padding:10px;border-radius:12px;background:rgba(255,255,255,.02)">
+            <input type="checkbox" name="talent_ids" value="{{ t['id'] }}" {{ "checked" if t['id'] in selected_ids else "" }}>
+            <div>
+              <div><b>{{ t["stage_name"] }}</b> <span class="muted">{{ t["real_name"] or "" }}</span></div>
+              <div class="muted" style="font-size:12px">status: {{ t["status"] }}</div>
+            </div>
+          </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <label>備註</label>
+    <textarea name="notes" rows="7">{{ item.get('notes','') if item is mapping else (item.notes or '') }}</textarea>
+
+    <div class="row">
+      <button class="btn" type="submit">儲存</button>
+      <a class="btn ghost" href="{{ url_for('projects') }}">返回</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

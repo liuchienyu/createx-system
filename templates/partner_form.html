@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ "新增 Partner" if mode=="new" else "編輯 Partner" }}</h1>
+
+<div class="card">
+  <form method="post" class="form">
+    <label>公司/單位名稱（必填）</label>
+    <input name="company" value="{{ item.get('company','') }}" required placeholder="例如：味全龍 / 新北國王 / 品牌方...">
+
+    <div class="grid2">
+      <div>
+        <label>聯絡人</label>
+        <input name="contact" value="{{ item.get('contact','') }}">
+      </div>
+      <div>
+        <label>電話</label>
+        <input name="phone" value="{{ item.get('phone','') }}">
+      </div>
+    </div>
+
+    <label>Email</label>
+    <input name="email" value="{{ item.get('email','') }}">
+
+    <label>洽談階段（Stage）</label>
+    {% set s=item.get('stage','lead') %}
+    <select name="stage">
+      <option value="lead" {{ "selected" if s=="lead" else "" }}>lead</option>
+      <option value="need" {{ "selected" if s=="need" else "" }}>need</option>
+      <option value="proposal" {{ "selected" if s=="proposal" else "" }}>proposal</option>
+      <option value="negotiate" {{ "selected" if s=="negotiate" else "" }}>negotiate</option>
+      <option value="contract" {{ "selected" if s=="contract" else "" }}>contract</option>
+      <option value="execute" {{ "selected" if s=="execute" else "" }}>execute</option>
+      <option value="closed" {{ "selected" if s=="closed" else "" }}>closed</option>
+    </select>
+
+    <label>下一步行動（Next Action）</label>
+    <input name="next_action" value="{{ item.get('next_action','') }}" placeholder="例如：2/20 寄提案、約會議、回覆報價...">
+
+    <label>下一步截止日（Next Due，建議 YYYY-MM-DD）</label>
+    <input name="next_due" value="{{ item.get('next_due','') }}" placeholder="2026-02-20">
+
+    <label>備註</label>
+    <textarea name="notes" rows="7" placeholder="需求、KPI、預算、談判重點、會議結論...">{{ item.get('notes','') }}</textarea>
+
+    <div class="row">
+      <button class="btn" type="submit">儲存</button>
+      <a class="btn ghost" href="{{ url_for('partners') }}">返回</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

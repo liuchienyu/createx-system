@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row" style="justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap">
+  <div>
+    <h1 style="margin:0">Tasks｜待辦</h1>
+    <div class="muted" style="margin-top:6px">用來追合作跟專案的下一步，Dashboard 會自動提醒到期與逾期</div>
+  </div>
+  {% if user_has_perm('edit_tasks') %}
+    <a class="btn" href="{{ url_for('task_new') }}">＋ 新增待辦</a>
+  {% endif %}
+</div>
+
+<div class="card" style="margin-top:12px">
+  <form method="get" class="row gap" style="flex-wrap:wrap;align-items:center">
+    <input name="q" value="{{ q }}" placeholder="搜尋標題/備註">
+    <input name="assignee" value="{{ f_assignee }}" placeholder="負責人（可空）" style="min-width:160px">
+    <select name="status">
+      <option value="">全部狀態</option>
+      <option value="open" {{ "selected" if f_status=="open" else "" }}>未完成</option>
+      <option value="done" {{ "selected" if f_status=="done" else "" }}>已完成</option>
+    </select>
+    <select name="related">
+      <option value="">全部關聯</option>
+      <option value="project" {{ "selected" if f_related=="project" else "" }}>Project</option>
+      <option value="partner" {{ "selected" if f_related=="partner" else "" }}>Partner</option>
+      <option value="talent" {{ "selected" if f_related=="talent" else "" }}>Talent</option>
+      <option value="finance" {{ "selected" if f_related=="finance" else "" }}>Finance</option>
+    </select>
+    <button class="btn ghost" type="submit">篩選</button>
+    <a class="btn ghost" href="{{ url_for('tasks') }}">清除</a>
+  </form>
+</div>
+
+<div class="card" style="margin-top:12px">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:80px">狀態</th>
+        <th>標題</th>
+        <th style="width:90px">優先級</th>
+        <th style="width:120px">到期日</th>
+        <th style="width:140px">負責人</th>
+        <th style="width:140px">關聯</th>
+        <th style="width:180px">操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+        <tr>
+          <td>
+            {% if r["status"] == "done" %}
+              <span class="pill">Done</span>
+            {% else %}
+              <span class="pill">Open</span>
+            {% endif %}
+          </td>
+          <td>
+            <b>{{ r["title"] }}</b>
+            {% if r["notes"] %}
+              <div class="muted" style="margin-top:4px">{{ r["notes"] }}</div>
+            {% endif %}
+          </td>
+          <td><span class="pill">{{ r["priority"] }}</span></td>
+          <td>{{ r["due_date"] or "—" }}</td>
+          <td>{{ r["assignee"] or "—" }}</td>
+          <td>
+            {% if r["related_type"] %}
+              <span class="pill">{{ r["related_type"] }} #{{ r["related_id"] }}</span>
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>
+            <div class="row gap" style="flex-wrap:wrap">
+              {% if user_has_perm('edit_tasks') %}
+                <form method="post" action="{{ url_for('task_toggle', task_id=r['id']) }}">
+                  <button class="btn tiny ghost" type="submit">{{ "改 Open" if r["status"]=="done" else "改 Done" }}</button>
+                </form>
+                <a class="btn tiny" href="{{ url_for('task_edit', task_id=r['id']) }}">編輯</a>
+                <form method="post" action="{{ url_for('task_delete', task_id=r['id']) }}" onsubmit="return confirm('確定刪除？')">
+                  <button class="btn tiny danger" type="submit">刪除</button>
+                </form>
+              {% else %}
+                —
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+      {% endfor %}
+      {% if rows|length == 0 %}
+        <tr><td colspan="7" class="muted">目前沒有待辦</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

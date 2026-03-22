@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Approvals｜新增公文</h1>
+
+<div class="card">
+  <form method="post" class="row gap" style="flex-direction:column;">
+    <div>
+      <div class="muted" style="font-size:12px; margin-bottom:6px;">標題 *</div>
+      <input name="title" required value="{{ item.get('title','') }}" placeholder="例如：3/21 活動支出簽核">
+    </div>
+
+    <div class="row gap" style="flex-wrap:wrap;">
+      <div style="min-width:180px;">
+        <div class="muted" style="font-size:12px; margin-bottom:6px;">類型</div>
+        {% set t = item.get('type','general') %}
+        <select name="type">
+          <option value="general" {{ 'selected' if t=='general' else '' }}>一般公文</option>
+          <option value="hr" {{ 'selected' if t=='hr' else '' }}>人事</option>
+          <option value="finance" {{ 'selected' if t=='finance' else '' }}>財務</option>
+        </select>
+      </div>
+
+      <div style="min-width:180px;">
+        <div class="muted" style="font-size:12px; margin-bottom:6px;">部門</div>
+        <input name="department" value="{{ item.get('department','') }}" placeholder="例如：營運 / 人資 / 財務">
+      </div>
+
+      <div style="min-width:180px;">
+        <div class="muted" style="font-size:12px; margin-bottom:6px;">金額</div>
+        <input name="amount" type="number" min="0" value="{{ item.get('amount','0') }}">
+      </div>
+    </div>
+
+    <div>
+      <div class="muted" style="font-size:12px; margin-bottom:6px;">內容</div>
+      <textarea name="content" rows="6" placeholder="請填寫公文內容、用途、原因等">{{ item.get('content','') }}</textarea>
+    </div>
+
+    <div class="card" style="background:rgba(255,255,255,.03);">
+      <h2 style="margin-top:0;">三層審核流程</h2>
+
+      <div class="row gap" style="flex-wrap:wrap;">
+        <div class="card" style="flex:1; min-width:240px;">
+          <div class="muted" style="font-size:12px; margin-bottom:8px;">第一層｜申請人 / 執行經紀</div>
+          <div><b>{{ current_user.username }}</b></div>
+          <div class="muted" style="font-size:12px; margin-top:6px;">系統自動帶入目前申請者</div>
+        </div>
+
+        <div class="card" style="flex:1; min-width:240px;">
+          <div class="muted" style="font-size:12px; margin-bottom:8px;">第二層｜部門主管 / 主經紀</div>
+          {% set lv2 = item.get('level_2_approver_id','') %}
+          {% for u in level_2_users %}
+            <label style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
+              <input type="radio" name="level_2_approver_id" value="{{ u['id'] }}"
+                {{ 'checked' if lv2|string == u['id']|string else '' }}>
+              {{ u['username'] }}
+            </label>
+          {% endfor %}
+        </div>
+
+        <div class="card" style="flex:1; min-width:240px;">
+          <div class="muted" style="font-size:12px; margin-bottom:8px;">第三層｜創辦人 / 負責人</div>
+          {% set lv3 = item.get('level_3_approver_id','') %}
+          {% for u in level_3_users %}
+            <label style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
+              <input type="radio" name="level_3_approver_id" value="{{ u['id'] }}"
+                {{ 'checked' if lv3|string == u['id']|string else '' }}>
+              {{ u['username'] }}
+            </label>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="row gap">
+      <button class="btn" type="submit">建立並送出</button>
+      <a class="btn ghost" href="{{ url_for('approvals') }}">返回列表</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

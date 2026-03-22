@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+  <h1>Projects</h1>
+  <a class="btn" href="{{ url_for('project_new') }}">新增 Project</a>
+</div>
+
+<form method="get" class="row gap">
+  <input name="q" value="{{ q }}" placeholder="搜尋：名稱/地點/備註" />
+  <button class="btn ghost" type="submit">搜尋</button>
+  <a class="btn ghost" href="{{ url_for('projects') }}">清除</a>
+</form>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>日期</th>
+        <th>名稱</th>
+        <th>地點</th>
+        <th>負責人</th>
+        <th>狀態</th>
+        <th>女孩數</th>
+        <th>預算</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+        <tr>
+          <td>{{ r["id"] }}</td>
+          <td>{{ r["date"] or "-" }}</td>
+          <td><b>{{ r["name"] }}</b></td>
+          <td>{{ r["location"] or "-" }}</td>
+          <td class="muted">{{ r["owner"] or "-" }}</td>
+          <td><span class="pill">{{ r["status"] }}</span></td>
+          <td class="muted">{{ talent_counts.get(r["id"], 0) }}</td>
+          <td class="muted">收入 {{ r["budget_income"] or 0 }} / 成本 {{ r["budget_cost"] or 0 }}</td>
+          <td class="actions">
+            <a class="btn tiny ghost" href="{{ url_for('project_edit', project_id=r['id']) }}">編輯</a>
+            <form method="post" action="{{ url_for('project_delete', project_id=r['id']) }}" onsubmit="return confirm('確定刪除？')">
+              <button class="btn tiny danger" type="submit">刪除</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="9" class="muted">尚無資料</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

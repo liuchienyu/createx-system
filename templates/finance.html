@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+  <h1>Finance</h1>
+  <a class="btn" href="{{ url_for('finance_new') }}">新增 收/支</a>
+</div>
+
+<div class="card" style="margin-top:12px">
+  <div class="row" style="justify-content:space-between;align-items:center">
+    <div class="muted">未結清合計：AR {{ totals.get('AR',0) }} ／ AP {{ totals.get('AP',0) }}</div>
+  </div>
+
+  <form method="get" class="row gap" style="margin-top:12px">
+    <input name="q" value="{{ q }}" placeholder="搜尋：標題/備註/專案/合作方/女孩" />
+    <select name="type">
+      <option value="" {{ "selected" if not f_type else "" }}>全部類型</option>
+      <option value="AR" {{ "selected" if f_type=="AR" else "" }}>AR 應收</option>
+      <option value="AP" {{ "selected" if f_type=="AP" else "" }}>AP 應付</option>
+    </select>
+    <select name="status">
+      <option value="" {{ "selected" if not f_status else "" }}>全部狀態</option>
+      <option value="draft" {{ "selected" if f_status=="draft" else "" }}>draft</option>
+      <option value="sent" {{ "selected" if f_status=="sent" else "" }}>sent</option>
+      <option value="paid" {{ "selected" if f_status=="paid" else "" }}>paid</option>
+      <option value="overdue" {{ "selected" if f_status=="overdue" else "" }}>overdue</option>
+    </select>
+    <button class="btn ghost" type="submit">篩選</button>
+    <a class="btn ghost" href="{{ url_for('finance') }}">清除</a>
+  </form>
+</div>
+
+<div class="card" style="margin-top:12px">
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>類型</th>
+        <th>標題</th>
+        <th>關聯</th>
+        <th>金額</th>
+        <th>到期日</th>
+        <th>狀態</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+        <tr>
+          <td>{{ r["id"] }}</td>
+          <td><span class="pill">{{ r["type"] }}</span></td>
+          <td><b>{{ r["title"] or "-" }}</b></td>
+          <td class="muted">
+            {% if r["project_name"] %}P: {{ r["project_name"] }}<br>{% endif %}
+            {% if r["partner_company"] %}Co: {{ r["partner_company"] }}<br>{% endif %}
+            {% if r["talent_name"] %}T: {{ r["talent_name"] }}{% endif %}
+            {% if not r["project_name"] and not r["partner_company"] and not r["talent_name"] %}-{% endif %}
+          </td>
+          <td>{{ r["amount"] }}</td>
+          <td>{{ r["due_date"] or "-" }}</td>
+          <td><span class="pill">{{ r["status"] }}</span></td>
+          <td class="actions">
+            <a class="btn tiny ghost" href="{{ url_for('finance_edit', fid=r['id']) }}">編輯</a>
+            <form method="post" action="{{ url_for('finance_delete', fid=r['id']) }}" onsubmit="return confirm('確定刪除？')">
+              <button class="btn tiny danger" type="submit">刪除</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="8" class="muted">尚無資料</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

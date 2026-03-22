@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+  <h1>Talents</h1>
+  <a class="btn" href="{{ url_for('talent_new') }}">新增 Talent</a>
+</div>
+
+<form method="get" class="row gap">
+  <input name="q" value="{{ q }}" placeholder="搜尋：名字/備註" />
+  <button class="btn ghost" type="submit">搜尋</button>
+  <a class="btn ghost" href="{{ url_for('talents') }}">清除</a>
+</form>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th><th>藝名</th><th>本名</th><th>狀態</th><th>聯絡</th><th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+        <tr>
+          <td>{{ r["id"] }}</td>
+          <td><b>{{ r["stage_name"] }}</b></td>
+          <td>{{ r["real_name"] or "-" }}</td>
+          <td><span class="pill">{{ r["status"] }}</span></td>
+          <td class="muted">{{ r["phone"] or "" }} {{ r["email"] or "" }}</td>
+          <td class="actions">
+            <a class="btn tiny ghost" href="{{ url_for('talent_edit', talent_id=r['id']) }}">編輯</a>
+            <form method="post" action="{{ url_for('talent_delete', talent_id=r['id']) }}" onsubmit="return confirm('確定刪除？')">
+              <button class="btn tiny danger" type="submit">刪除</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="muted">尚無資料</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

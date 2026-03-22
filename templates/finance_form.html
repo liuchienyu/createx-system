@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ "新增 Finance" if mode=="new" else "編輯 Finance" }}</h1>
+
+<div class="card">
+  <form method="post" class="form">
+    <div class="grid2">
+      <div>
+        <label>類型</label>
+        {% set tp = item.get('type','AR') %}
+        <select name="type">
+          <option value="AR" {{ "selected" if tp=="AR" else "" }}>AR 應收</option>
+          <option value="AP" {{ "selected" if tp=="AP" else "" }}>AP 應付</option>
+        </select>
+      </div>
+      <div>
+        <label>狀態</label>
+        {% set st = item.get('status','draft') %}
+        <select name="status">
+          <option value="draft" {{ "selected" if st=="draft" else "" }}>draft</option>
+          <option value="sent" {{ "selected" if st=="sent" else "" }}>sent</option>
+          <option value="paid" {{ "selected" if st=="paid" else "" }}>paid</option>
+          <option value="overdue" {{ "selected" if st=="overdue" else "" }}>overdue</option>
+        </select>
+      </div>
+    </div>
+
+    <label>標題（建議填）</label>
+    <input name="title" value="{{ item.get('title','') }}" placeholder="例：3/15 一日店長票款 / 女孩出席費 / 場地訂金">
+
+    <div class="grid2">
+      <div>
+        <label>金額（整數）</label>
+        <input name="amount" type="number" step="1" value="{{ item.get('amount','0') }}">
+      </div>
+      <div>
+        <label>到期日（YYYY-MM-DD）</label>
+        <input name="due_date" value="{{ item.get('due_date','') }}" placeholder="2026-03-20">
+      </div>
+    </div>
+
+    <div class="grid3">
+      <div>
+        <label>關聯 Project（選填）</label>
+        {% set pid = item.get('project_id','') %}
+        <select name="project_id">
+          <option value="">-</option>
+          {% for p in projects %}
+            <option value="{{ p['id'] }}" {{ "selected" if pid|string == p['id']|string else "" }}>
+              #{{ p["id"] }} {{ p["name"] }}{% if p["date"] %} ({{ p["date"] }}){% endif %}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label>關聯 Partner（選填）</label>
+        {% set paid = item.get('partner_id','') %}
+        <select name="partner_id">
+          <option value="">-</option>
+          {% for p in partners %}
+            <option value="{{ p['id'] }}" {{ "selected" if paid|string == p['id']|string else "" }}>
+              #{{ p["id"] }} {{ p["company"] }} ({{ p["stage"] }})
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label>關聯 Talent（選填）</label>
+        {% set tid = item.get('talent_id','') %}
+        <select name="talent_id">
+          <option value="">-</option>
+          {% for t in talents %}
+            <option value="{{ t['id'] }}" {{ "selected" if tid|string == t['id']|string else "" }}>
+              #{{ t["id"] }} {{ t["stage_name"] }} ({{ t["status"] }})
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <label>備註</label>
+    <textarea name="notes" rows="7">{{ item.get('notes','') }}</textarea>
+
+    <div class="row">
+      <button class="btn" type="submit">儲存</button>
+      <a class="btn ghost" href="{{ url_for('finance') }}">返回</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ "新增待辦" if mode=="new" else "編輯待辦" }}</h1>
+
+<div class="card">
+  <form method="post" class="form">
+    <label>標題 *</label>
+    <input name="title" value="{{ item.get('title','') }}" required>
+
+    <div class="row gap" style="flex-wrap:wrap">
+      <div style="flex:1;min-width:220px">
+        <label>負責人</label>
+        <input name="assignee" value="{{ item.get('assignee','') }}" placeholder="例如：建佑 / 小李子 / 助理A">
+      </div>
+
+      <div style="min-width:180px">
+        <label>到期日（YYYY-MM-DD）</label>
+        <input name="due_date" value="{{ item.get('due_date','') }}" placeholder="2026-03-15">
+      </div>
+
+      <div style="min-width:140px">
+        <label>優先級</label>
+        <select name="priority">
+          {% set pv = item.get('priority','P2') %}
+          <option value="P1" {{ "selected" if pv=="P1" else "" }}>P1</option>
+          <option value="P2" {{ "selected" if pv=="P2" else "" }}>P2</option>
+          <option value="P3" {{ "selected" if pv=="P3" else "" }}>P3</option>
+        </select>
+      </div>
+
+      <div style="min-width:140px">
+        <label>狀態</label>
+        {% set sv = item.get('status','open') %}
+        <select name="status">
+          <option value="open" {{ "selected" if sv=="open" else "" }}>open</option>
+          <option value="done" {{ "selected" if sv=="done" else "" }}>done</option>
+        </select>
+      </div>
+    </div>
+
+    <hr style="opacity:.2;margin:14px 0">
+
+    <div class="row gap" style="flex-wrap:wrap">
+      <div style="min-width:220px">
+        <label>關聯類型（可不選）</label>
+        {% set rt = item.get('related_type','') %}
+        <select name="related_type">
+          <option value="" {{ "selected" if rt=="" else "" }}>無</option>
+          <option value="project" {{ "selected" if rt=="project" else "" }}>project</option>
+          <option value="partner" {{ "selected" if rt=="partner" else "" }}>partner</option>
+          <option value="talent" {{ "selected" if rt=="talent" else "" }}>talent</option>
+          <option value="finance" {{ "selected" if rt=="finance" else "" }}>finance</option>
+        </select>
+      </div>
+
+      <div style="min-width:220px">
+        <label>關聯 ID（填數字）</label>
+        <input name="related_id" value="{{ item.get('related_id','') }}" placeholder="例如：project 的 id">
+        <div class="muted" style="margin-top:6px">先用 ID 快速關聯；之後我們可改成下拉選單動態切換。</div>
+      </div>
+    </div>
+
+    <label style="margin-top:14px">備註</label>
+    <textarea name="notes" rows="4">{{ item.get('notes','') }}</textarea>
+
+    <div class="row gap" style="margin-top:14px">
+      <button class="btn" type="submit">儲存</button>
+      <a class="btn ghost" href="{{ url_for('tasks') }}">取消</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

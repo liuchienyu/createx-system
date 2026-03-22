@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Approvals｜公文簽核</h1>
+
+<div class="card">
+  <form method="get" action="{{ url_for('approvals') }}" class="row gap" style="flex-wrap:wrap; align-items:flex-end;">
+    <div style="min-width:220px; flex:1;">
+      <div class="muted" style="font-size:12px; margin-bottom:6px;">搜尋</div>
+      <input name="q" value="{{ q or '' }}" placeholder="搜尋標題 / 內容">
+    </div>
+
+    <div style="min-width:150px;">
+      <div class="muted" style="font-size:12px; margin-bottom:6px;">類型</div>
+      <select name="type">
+        <option value="">全部</option>
+        <option value="general" {{ 'selected' if f_type=='general' else '' }}>一般公文</option>
+        <option value="hr" {{ 'selected' if f_type=='hr' else '' }}>人事</option>
+        <option value="finance" {{ 'selected' if f_type=='finance' else '' }}>財務</option>
+      </select>
+    </div>
+
+    <div style="min-width:170px;">
+      <div class="muted" style="font-size:12px; margin-bottom:6px;">狀態</div>
+      <select name="status">
+        <option value="">全部</option>
+        <option value="submitted" {{ 'selected' if f_status=='submitted' else '' }}>submitted</option>
+        <option value="reviewing" {{ 'selected' if f_status=='reviewing' else '' }}>reviewing</option>
+        <option value="approved" {{ 'selected' if f_status=='approved' else '' }}>approved</option>
+        <option value="returned_to_previous" {{ 'selected' if f_status=='returned_to_previous' else '' }}>returned_to_previous</option>
+        <option value="returned_to_creator" {{ 'selected' if f_status=='returned_to_creator' else '' }}>returned_to_creator</option>
+      </select>
+    </div>
+
+    <div class="row gap">
+      <button class="btn" type="submit">套用</button>
+      <a class="btn ghost" href="{{ url_for('approvals') }}">清除</a>
+      {% if user_has_perm('create_approvals') %}
+        <a class="btn" href="{{ url_for('approval_new') }}">＋ 新增公文</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<div class="card" style="margin-top:12px;">
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>標題</th>
+        <th>類型</th>
+        <th>狀態</th>
+        <th>目前層級</th>
+        <th>申請人</th>
+        <th>第二層</th>
+        <th>第三層</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+        <tr>
+          <td>#{{ r['id'] }}</td>
+          <td><b>{{ r['title'] }}</b></td>
+          <td>{{ r['type'] }}</td>
+          <td><span class="pill">{{ r['status'] }}</span></td>
+          <td>第 {{ r['current_step'] }} 層</td>
+          <td>{{ r['creator_name'] or '-' }}</td>
+          <td>{{ r['level_2_name'] or '-' }}</td>
+          <td>{{ r['level_3_name'] or '-' }}</td>
+          <td>
+            <a class="btn tiny ghost" href="{{ url_for('approval_detail', doc_id=r['id']) }}">查看</a>
+          </td>
+        </tr>
+      {% endfor %}
+      {% if rows|length == 0 %}
+        <tr>
+          <td colspan="9" class="muted">目前沒有資料</td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

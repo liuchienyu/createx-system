@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>編輯角色｜{{ role["name"] }}</h1>
+
+<div class="card">
+  <form method="post" class="form">
+    <label>角色名稱</label>
+    <input name="name" value="{{ role['name'] }}" required>
+
+    <label>描述</label>
+    <input name="description" value="{{ role['description'] or '' }}">
+
+    <label>權限（勾選此角色擁有的功能）</label>
+    <div class="card" style="padding:12px">
+      <div class="grid2">
+        {% for p in perms %}
+          <label style="display:flex;gap:10px;align-items:center;border:1px solid rgba(255,255,255,.12);padding:10px;border-radius:12px">
+            <input type="checkbox" name="perm_ids" value="{{ p['id'] }}" {{ "checked" if p["id"] in selected_perm_ids else "" }}>
+            <div>
+              <div><b>{{ p["code"] }}</b></div>
+              <div class="muted" style="font-size:12px">{{ p["description"] or "" }}</div>
+            </div>
+          </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="row">
+      <button class="btn" type="submit">儲存</button>
+      <a class="btn ghost" href="{{ url_for('admin_roles') }}">返回</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row" style="justify-content:space-between;align-items:flex-end">
+  <div>
+    <h1 style="margin:0">後台｜使用者管理</h1>
+    <div class="muted" style="margin-top:6px">帳號啟用/停用、角色模板一鍵套用、強制改密碼、權限總覽</div>
+  </div>
+</div>
+
+<!-- 新增使用者 -->
+<div class="card" style="margin-top:14px">
+  <h2 style="margin-top:0">新增使用者</h2>
+  <form method="post" action="{{ url_for('admin_user_new') }}" class="row gap" style="flex-wrap:wrap;align-items:center">
+    <input name="username" placeholder="帳號 (例如: ops01)" required style="min-width:220px">
+    <input name="password" placeholder="初始密碼（至少8碼）" required style="min-width:220px">
+    <label style="display:flex;gap:8px;align-items:center">
+      <input type="checkbox" name="must_change_password" value="1">
+      首次登入強制改密碼
+    </label>
+    <button class="btn" type="submit">建立</button>
+  </form>
+</div>
+
+<!-- 使用者列表 -->
+<div class="card" style="margin-top:14px">
+  <div class="row" style="justify-content:space-between;align-items:center">
+    <h2 style="margin:0">使用者列表</h2>
+    <div class="muted">提示：停用後無法登入；權限顯示為實際生效權限（由角色計算）</div>
+  </div>
+
+  <table style="margin-top:12px">
+    <thead>
+      <tr>
+        <th style="width:60px">ID</th>
+        <th style="width:160px">帳號</th>
+        <th style="width:110px">狀態</th>
+        <th>角色</th>
+        <th style="width:240px">角色模板</th>
+        <th style="width:320px">重設密碼</th>
+        <th>目前權限</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+        {% set owned = user_role_map.get(u["id"], []) %}
+        {% set perms = user_perm_map.get(u["id"], []) %}
+
+        <tr>
+          <td>{{ u["id"] }}</td>
+
+          <td>
+            <b>{{ u["username"] }}</b>
+            {% if u["must_change_password"] == 1 %}
+              <div class="muted" style="font-size:12px;margin-top:4px">⚠ 需改密碼</div>
+            {% endif %}
+          </td>
+
+          <td>
+            <form method="post" action="{{ url_for('admin_user_toggle_active', user_id=u['id']) }}"
+                  onsubmit="return confirm('確定切換此帳號啟用/停用？')">
+              {% if u["is_active"] == 1 %}
+                <span class="pill">啟用</span>
+                <button class="btn tiny danger" type="submit" style="margin-left:8px">停用</button>
+              {% else %}
+                <span class="pill">停用</span>
+                <button class="btn tiny ghost" type="submit" style="margin-left:8px">啟用</button>
+              {% endif %}
+            </form>
+          </td>
+
+          <!-- 角色指派 -->
+          <td>
+            <form method="post" action="{{ url_for('admin_user_roles', user_id=u['id']) }}">
+              <div class="row gap" style="flex-wrap:wrap">
+                {% for r in roles %}
+                  <label style="display:flex;gap:8px;align-items:center;border:1px solid rgba(255,255,255,.12);padding:6px 10px;border-radius:999px">
+                    <input type="checkbox" name="role_ids" value="{{ r['id'] }}" {% if r["id"] in owned %}checked{% endif %}>
+                    {{ r["name"] }}
+                  </label>
+                {% endfor %}
+                <button class="btn tiny ghost" type="submit">更新角色</button>
+              </div>
+            </form>
+          </td>
+
+          <!-- 角色模板一鍵套用 -->
+          <td>
+            <form method="post" action="{{ url_for('admin_user_apply_template', user_id=u['id']) }}"
+                  class="row gap" style="align-items:center;flex-wrap:wrap">
+              <select name="template_name" style="min-width:180px">
+                {% for k, v in role_templates.items() %}
+                  <option value="{{ k }}">{{ k }}（{{ v|join(', ') }}）</option>
+                {% endfor %}
+              </select>
+              <button class="btn tiny" type="submit">套用</button>
+            </form>
+            <div class="muted" style="font-size:12px;margin-top:6px">套用會覆蓋此人的角色勾選</div>
+          </td>
+
+          <!-- 重設密碼 + 強制改密碼 -->
+          <td>
+            <form method="post" action="{{ url_for('admin_user_reset_password', user_id=u['id']) }}"
+                  class="row gap" style="align-items:center;flex-wrap:wrap">
+              <input name="new_password" placeholder="新密碼" required style="min-width:160px">
+              <label style="display:flex;gap:8px;align-items:center">
+                <input type="checkbox" name="force_change" value="1">
+                下次登入強制改密碼
+              </label>
+              <button class="btn tiny danger" type="submit" onclick="return confirm('確定重設密碼？')">重設</button>
+            </form>
+          </td>
+
+          <!-- 目前權限 -->
+          <td>
+            {% if perms and perms|length > 0 %}
+              <div style="display:flex;flex-wrap:wrap;gap:8px">
+                {% for p in perms %}
+                  <span class="pill">{{ p }}</span>
+                {% endfor %}
+              </div>
+            {% else %}
+              <span class="muted">（無權限）</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
