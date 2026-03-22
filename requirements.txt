@@ -3,4 +3,4 @@ Flask-Login==0.6.3
 Werkzeug==3.0.3
 gunicorn==23.0.0
 python-dotenv==1.0.1
-psycopg[binary]==3.2.1
+psycopg[binary]==3.3.3
