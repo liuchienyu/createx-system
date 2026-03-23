@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}編輯財務紀錄 - Createx{% endblock %}
+{% block page_title %}編輯財務紀錄{% endblock %}
+{% block page_subtitle %}修改既有的收入或支出資料{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 760px;">
+    <form method="post">
+        <label>日期</label>
+        <input type="date" name="record_date" value="{{ record.record_date }}" required>
+
+        <label>收支類型</label>
+        <select name="category_type" required>
+            <option value="">請選擇</option>
+            <option value="income" {% if record.category_type == 'income' %}selected{% endif %}>收入</option>
+            <option value="expense" {% if record.category_type == 'expense' %}selected{% endif %}>支出</option>
+        </select>
+
+        <label>分類</label>
+        <input type="text" name="category_name" value="{{ record.category_name }}" required>
+
+        <label>項目名稱</label>
+        <input type="text" name="item_name" value="{{ record.item_name }}" required>
+
+        <label>金額</label>
+        <input type="number" name="amount" step="0.01" value="{{ record.amount }}" required>
+
+        <label>付款方式</label>
+        <input type="text" name="payment_method" value="{{ record.payment_method or '' }}">
+
+        <label>對象</label>
+        <input type="text" name="counterparty" value="{{ record.counterparty or '' }}">
+
+        <label>備註</label>
+        <textarea name="note" rows="4">{{ record.note or '' }}</textarea>
+
+        <button type="submit">儲存變更</button>
+    </form>
+</div>
+{% endblock %}

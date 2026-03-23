@@ -33,6 +33,14 @@
             <li><a href="{{ url_for('admin_roles') }}">角色管理</a></li>
             <li><a href="{{ url_for('create_role') }}">新增角色</a></li>
         {% endif %}
+
+        {% if user.has_permission('view_finance') %}
+         <li><a href="{{ url_for('finance_index') }}">財務管理</a></li>
+        {% endif %}
+        
+        {% if user.has_permission('edit_finance') %}
+        <li><a href="{{ url_for('finance_create') }}">新增財務紀錄</a></li>
+        {% endif %}
     </ul>
 </div>
 {% endblock %}

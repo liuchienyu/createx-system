@@ -179,6 +179,25 @@ def init_db() -> None:
                 """
             )
 
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS finance_records (
+                    id SERIAL PRIMARY KEY,
+                    record_date DATE NOT NULL,
+                    category_type VARCHAR(20) NOT NULL,
+                    category_name VARCHAR(100) NOT NULL,
+                    item_name VARCHAR(200) NOT NULL,
+                    amount NUMERIC(12, 2) NOT NULL DEFAULT 0,
+                    payment_method VARCHAR(50),
+                    counterparty VARCHAR(100),
+                    note TEXT,
+                    created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+                );
+                """
+            )
+
         conn.commit()
 
     seed_rbac()
@@ -348,6 +367,26 @@ def get_all_permissions():
             )
             rows = cur.fetchall()
     return rows
+
+def parse_month_filter(month_str: str):
+    if not month_str:
+        return None, None
+
+    try:
+        year, month = month_str.split("-")
+        year = int(year)
+        month = int(month)
+
+        start_date = f"{year:04d}-{month:02d}-01"
+
+        if month == 12:
+            end_date = f"{year + 1:04d}-01-01"
+        else:
+            end_date = f"{year:04d}-{month + 1:02d}-01"
+
+        return start_date, end_date
+    except Exception:
+        return None, None
 
 # =========================
 # User model
@@ -1074,6 +1113,222 @@ def healthz():
         return {"status": "error", "message": str(e)}, 500
 
     return {"status": "error"}, 500
+
+
+@app.route("/finance")
+@login_required
+@permission_required("view_finance")
+def finance_index():
+    month = (request.args.get("month") or "").strip()
+    start_date, end_date = parse_month_filter(month)
+
+    query = """
+        SELECT fr.id,
+               fr.record_date,
+               fr.category_type,
+               fr.category_name,
+               fr.item_name,
+               fr.amount,
+               fr.payment_method,
+               fr.counterparty,
+               fr.note,
+               fr.created_at,
+               u.display_name AS created_by_name
+        FROM finance_records fr
+        LEFT JOIN users u ON u.id = fr.created_by
+    """
+    params = []
+
+    if start_date and end_date:
+        query += " WHERE fr.record_date >= %s AND fr.record_date < %s"
+        params.extend([start_date, end_date])
+
+    query += " ORDER BY fr.record_date DESC, fr.id DESC"
+
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, params)
+            records = cur.fetchall()
+
+    total_income = sum(float(r["amount"]) for r in records if r["category_type"] == "income")
+    total_expense = sum(float(r["amount"]) for r in records if r["category_type"] == "expense")
+    net_amount = total_income - total_expense
+
+    return render_template(
+        "finance/index.html",
+        records=records,
+        month=month,
+        total_income=total_income,
+        total_expense=total_expense,
+        net_amount=net_amount,
+    )
+
+@app.route("/finance/create", methods=["GET", "POST"])
+@login_required
+@permission_required("edit_finance")
+def finance_create():
+    if request.method == "POST":
+        record_date = (request.form.get("record_date") or "").strip()
+        category_type = (request.form.get("category_type") or "").strip()
+        category_name = (request.form.get("category_name") or "").strip()
+        item_name = (request.form.get("item_name") or "").strip()
+        amount = (request.form.get("amount") or "").strip()
+        payment_method = (request.form.get("payment_method") or "").strip()
+        counterparty = (request.form.get("counterparty") or "").strip()
+        note = (request.form.get("note") or "").strip()
+
+        if not record_date:
+            flash("請輸入日期", "danger")
+            return redirect(url_for("finance_create"))
+
+        if category_type not in ["income", "expense"]:
+            flash("請選擇正確的收支類型", "danger")
+            return redirect(url_for("finance_create"))
+
+        if not category_name:
+            flash("請輸入分類", "danger")
+            return redirect(url_for("finance_create"))
+
+        if not item_name:
+            flash("請輸入項目名稱", "danger")
+            return redirect(url_for("finance_create"))
+
+        try:
+            amount_value = float(amount)
+        except ValueError:
+            flash("金額格式錯誤", "danger")
+            return redirect(url_for("finance_create"))
+
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO finance_records (
+                        record_date, category_type, category_name, item_name,
+                        amount, payment_method, counterparty, note, created_by
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        record_date,
+                        category_type,
+                        category_name,
+                        item_name,
+                        amount_value,
+                        payment_method,
+                        counterparty,
+                        note,
+                        int(current_user.id),
+                    ),
+                )
+            conn.commit()
+
+        flash("財務紀錄新增成功", "success")
+        return redirect(url_for("finance_index"))
+
+    return render_template("finance/create.html")
+
+@app.route("/finance/<int:record_id>/edit", methods=["GET", "POST"])
+@login_required
+@permission_required("edit_finance")
+def finance_edit(record_id: int):
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT *
+                FROM finance_records
+                WHERE id = %s
+                """,
+                (record_id,),
+            )
+            record = cur.fetchone()
+
+            if not record:
+                abort(404)
+
+            if request.method == "POST":
+                record_date = (request.form.get("record_date") or "").strip()
+                category_type = (request.form.get("category_type") or "").strip()
+                category_name = (request.form.get("category_name") or "").strip()
+                item_name = (request.form.get("item_name") or "").strip()
+                amount = (request.form.get("amount") or "").strip()
+                payment_method = (request.form.get("payment_method") or "").strip()
+                counterparty = (request.form.get("counterparty") or "").strip()
+                note = (request.form.get("note") or "").strip()
+
+                if not record_date:
+                    flash("請輸入日期", "danger")
+                    return redirect(url_for("finance_edit", record_id=record_id))
+
+                if category_type not in ["income", "expense"]:
+                    flash("請選擇正確的收支類型", "danger")
+                    return redirect(url_for("finance_edit", record_id=record_id))
+
+                if not category_name:
+                    flash("請輸入分類", "danger")
+                    return redirect(url_for("finance_edit", record_id=record_id))
+
+                if not item_name:
+                    flash("請輸入項目名稱", "danger")
+                    return redirect(url_for("finance_edit", record_id=record_id))
+
+                try:
+                    amount_value = float(amount)
+                except ValueError:
+                    flash("金額格式錯誤", "danger")
+                    return redirect(url_for("finance_edit", record_id=record_id))
+
+                cur.execute(
+                    """
+                    UPDATE finance_records
+                    SET record_date = %s,
+                        category_type = %s,
+                        category_name = %s,
+                        item_name = %s,
+                        amount = %s,
+                        payment_method = %s,
+                        counterparty = %s,
+                        note = %s,
+                        updated_at = NOW()
+                    WHERE id = %s
+                    """,
+                    (
+                        record_date,
+                        category_type,
+                        category_name,
+                        item_name,
+                        amount_value,
+                        payment_method,
+                        counterparty,
+                        note,
+                        record_id,
+                    ),
+                )
+                conn.commit()
+
+                flash("財務紀錄更新成功", "success")
+                return redirect(url_for("finance_index"))
+
+    return render_template("finance/edit.html", record=record)
+
+@app.route("/finance/<int:record_id>/delete", methods=["POST"])
+@login_required
+@permission_required("edit_finance")
+def finance_delete(record_id: int):
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM finance_records WHERE id = %s", (record_id,))
+            record = cur.fetchone()
+
+            if not record:
+                abort(404)
+
+            cur.execute("DELETE FROM finance_records WHERE id = %s", (record_id,))
+            conn.commit()
+
+    flash("財務紀錄已刪除", "success")
+    return redirect(url_for("finance_index"))
 
 
 # =========================

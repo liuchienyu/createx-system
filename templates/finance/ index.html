@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}財務管理 - Createx{% endblock %}
+{% block page_title %}財務管理{% endblock %}
+{% block page_subtitle %}管理收入、支出與每月損益{% endblock %}
+
+{% block content %}
+<div class="card">
+    <form method="get" style="display: flex; gap: 12px; align-items: end; flex-wrap: wrap;">
+        <div>
+            <label>月份篩選</label>
+            <input type="month" name="month" value="{{ month }}">
+        </div>
+        <div>
+            <button type="submit">查詢</button>
+        </div>
+        {% if current_user.has_permission('edit_finance') %}
+        <div>
+            <a class="btn" href="{{ url_for('finance_create') }}">新增紀錄</a>
+        </div>
+        {% endif %}
+    </form>
+</div>
+
+<div class="card">
+    <h3>本頁統計</h3>
+    <p>總收入：NT$ {{ "{:,.0f}".format(total_income) }}</p>
+    <p>總支出：NT$ {{ "{:,.0f}".format(total_expense) }}</p>
+    <p><strong>淨額：NT$ {{ "{:,.0f}".format(net_amount) }}</strong></p>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>日期</th>
+                <th>收支</th>
+                <th>分類</th>
+                <th>項目</th>
+                <th>金額</th>
+                <th>付款方式</th>
+                <th>對象</th>
+                <th>建立人</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in records %}
+            <tr>
+                <td>{{ r.record_date }}</td>
+                <td>{{ '收入' if r.category_type == 'income' else '支出' }}</td>
+                <td>{{ r.category_name }}</td>
+                <td>{{ r.item_name }}</td>
+                <td>NT$ {{ "{:,.0f}".format(r.amount) }}</td>
+                <td>{{ r.payment_method or '' }}</td>
+                <td>{{ r.counterparty or '' }}</td>
+                <td>{{ r.created_by_name or '-' }}</td>
+                <td>
+                    {% if current_user.has_permission('edit_finance') %}
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <a class="btn" href="{{ url_for('finance_edit', record_id=r.id) }}">編輯</a>
+                        <form method="post" action="{{ url_for('finance_delete', record_id=r.id) }}" onsubmit="return confirm('確定要刪除這筆財務紀錄嗎？');">
+                            <button type="submit">刪除</button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

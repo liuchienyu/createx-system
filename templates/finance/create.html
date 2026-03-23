@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}新增財務紀錄 - Createx{% endblock %}
+{% block page_title %}新增財務紀錄{% endblock %}
+{% block page_subtitle %}建立一筆新的收入或支出資料{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 760px;">
+    <form method="post">
+        <label>日期</label>
+        <input type="date" name="record_date" required>
+
+        <label>收支類型</label>
+        <select name="category_type" required>
+            <option value="">請選擇</option>
+            <option value="income">收入</option>
+            <option value="expense">支出</option>
+        </select>
+
+        <label>分類</label>
+        <input type="text" name="category_name" placeholder="例如：票務收入、場地費、設計費" required>
+
+        <label>項目名稱</label>
+        <input type="text" name="item_name" placeholder="例如：3月火鍋嘉年華票券收入" required>
+
+        <label>金額</label>
+        <input type="number" name="amount" step="0.01" required>
+
+        <label>付款方式</label>
+        <input type="text" name="payment_method" placeholder="例如：現金、匯款、信用卡">
+
+        <label>對象</label>
+        <input type="text" name="counterparty" placeholder="例如：店家、設計師、活動廠商">
+
+        <label>備註</label>
+        <textarea name="note" rows="4"></textarea>
+
+        <button type="submit">建立紀錄</button>
+    </form>
+</div>
+{% endblock %}
