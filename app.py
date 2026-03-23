@@ -1822,6 +1822,95 @@ def project_create():
 
     return render_template("projects/create.html")
 
+
+@app.route("/projects/<int:project_id>/edit", methods=["GET", "POST"])
+@login_required
+def project_edit(project_id: int):
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, name, description, start_date, end_date, is_active
+                FROM projects
+                WHERE id = %s
+                """,
+                (project_id,),
+            )
+            project = cur.fetchone()
+
+            if not project:
+                abort(404)
+
+            if request.method == "POST":
+                name = (request.form.get("name") or "").strip()
+                description = (request.form.get("description") or "").strip()
+                start_date = (request.form.get("start_date") or "").strip()
+                end_date = (request.form.get("end_date") or "").strip()
+                is_active = request.form.get("is_active") == "on"
+
+                if not name:
+                    flash("請輸入專案名稱", "danger")
+                    return redirect(url_for("project_edit", project_id=project_id))
+
+                cur.execute(
+                    """
+                    UPDATE projects
+                    SET name = %s,
+                        description = %s,
+                        start_date = %s,
+                        end_date = %s,
+                        is_active = %s
+                    WHERE id = %s
+                    """,
+                    (
+                        name,
+                        description,
+                        start_date or None,
+                        end_date or None,
+                        is_active,
+                        project_id,
+                    ),
+                )
+                conn.commit()
+
+                flash("專案更新成功", "success")
+                return redirect(url_for("project_index"))
+
+    return render_template("projects/edit.html", project=project)
+
+@app.route("/projects/<int:project_id>/toggle-active", methods=["POST"])
+@login_required
+def project_toggle_active(project_id: int):
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, name, is_active
+                FROM projects
+                WHERE id = %s
+                """,
+                (project_id,),
+            )
+            project = cur.fetchone()
+
+            if not project:
+                abort(404)
+
+            new_active = not project["is_active"]
+
+            cur.execute(
+                """
+                UPDATE projects
+                SET is_active = %s
+                WHERE id = %s
+                """,
+                (new_active, project_id),
+            )
+            conn.commit()
+
+    flash("專案狀態已更新", "success")
+    return redirect(url_for("project_index"))
+
 @app.route("/projects/<int:project_id>/finance")
 @login_required
 def project_finance_report(project_id: int):

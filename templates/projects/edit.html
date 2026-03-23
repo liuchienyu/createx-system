@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}編輯專案 - Createx{% endblock %}
+{% block page_title %}編輯專案{% endblock %}
+{% block page_subtitle %}修改活動 / 專案的基本資料與啟用狀態{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 760px;">
+    <form method="post">
+        <label>專案名稱</label>
+        <input type="text" name="name" value="{{ project.name }}" required>
+
+        <label>說明</label>
+        <textarea name="description" rows="4">{{ project.description or '' }}</textarea>
+
+        <label>開始日期</label>
+        <input type="date" name="start_date" value="{{ project.start_date or '' }}">
+
+        <label>結束日期</label>
+        <input type="date" name="end_date" value="{{ project.end_date or '' }}">
+
+        <div style="margin: 12px 0 18px;">
+            <label style="font-weight: normal;">
+                <input type="checkbox" name="is_active" {% if project.is_active %}checked{% endif %}>
+                啟用專案
+            </label>
+        </div>
+
+        <button type="submit">儲存變更</button>
+    </form>
+</div>
+{% endblock %}

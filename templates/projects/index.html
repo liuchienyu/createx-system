@@ -29,7 +29,16 @@
                 <td>{{ p.description or '' }}</td>
                 <td>{{ '啟用中' if p.is_active else '停用' }}</td>
                 <td>
-                    <a class="btn" href="{{ url_for('project_finance_report', project_id=p.id) }}">查看損益</a>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <a class="btn" href="{{ url_for('project_finance_report', project_id=p.id) }}">查看損益</a>
+                        <a class="btn" href="{{ url_for('project_edit', project_id=p.id) }}">編輯</a>
+
+                        <form method="post" action="{{ url_for('project_toggle_active', project_id=p.id) }}" style="display: inline;">
+                            <button type="submit">
+                                {{ '停用' if p.is_active else '啟用' }}
+                            </button>
+                        </form>
+                    </div>
                 </td>
             </tr>
             {% endfor %}
