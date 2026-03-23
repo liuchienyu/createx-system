@@ -229,6 +229,27 @@ def init_db() -> None:
                 """
             )
 
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS receivable_payable_records (
+                    id SERIAL PRIMARY KEY,
+                    record_type VARCHAR(20) NOT NULL,
+                    title VARCHAR(200) NOT NULL,
+                    counterparty VARCHAR(100),
+                    amount NUMERIC(12, 2) NOT NULL DEFAULT 0,
+                    due_date DATE,
+                    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+                    note TEXT,
+                    project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL,
+                    finance_record_id INTEGER REFERENCES finance_records(id) ON DELETE SET NULL,
+                    created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                    paid_received_at TIMESTAMP NULL,
+                    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+                );
+                """
+            )
+
             # 再補 category_id
             cur.execute(
                 """
@@ -1608,6 +1629,265 @@ def finance_delete(record_id: int):
 
     flash("財務紀錄已刪除", "success")
     return redirect(url_for("finance_index"))
+
+@app.route("/ar-ap")
+@login_required
+@permission_required("view_finance")
+def ar_ap_index():
+    record_type = (request.args.get("type") or "").strip()
+    status = (request.args.get("status") or "").strip()
+
+    query = """
+        SELECT rp.id,
+               rp.record_type,
+               rp.title,
+               rp.counterparty,
+               rp.amount,
+               rp.due_date,
+               rp.status,
+               rp.note,
+               rp.project_id,
+               rp.paid_received_at,
+               p.name AS project_name
+        FROM receivable_payable_records rp
+        LEFT JOIN projects p ON p.id = rp.project_id
+    """
+    conditions = []
+    params = []
+
+    if record_type in ["receivable", "payable"]:
+        conditions.append("rp.record_type = %s")
+        params.append(record_type)
+
+    if status in ["pending", "completed", "cancelled"]:
+        conditions.append("rp.status = %s")
+        params.append(status)
+
+    if conditions:
+        query += " WHERE " + " AND ".join(conditions)
+
+    query += " ORDER BY rp.due_date ASC NULLS LAST, rp.id DESC"
+
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, params)
+            records = cur.fetchall()
+
+    total_receivable = sum(float(r["amount"]) for r in records if r["record_type"] == "receivable" and r["status"] == "pending")
+    total_payable = sum(float(r["amount"]) for r in records if r["record_type"] == "payable" and r["status"] == "pending")
+
+    return render_template(
+        "ar_ap/index.html",
+        records=records,
+        record_type=record_type,
+        status=status,
+        total_receivable=total_receivable,
+        total_payable=total_payable,
+    )
+
+@app.route("/ar-ap/create", methods=["GET", "POST"])
+@login_required
+@permission_required("edit_finance")
+def ar_ap_create():
+    if request.method == "POST":
+        record_type = (request.form.get("record_type") or "").strip()
+        title = (request.form.get("title") or "").strip()
+        counterparty = (request.form.get("counterparty") or "").strip()
+        amount = (request.form.get("amount") or "").strip()
+        due_date = (request.form.get("due_date") or "").strip()
+        status = (request.form.get("status") or "").strip()
+        note = (request.form.get("note") or "").strip()
+        project_id = (request.form.get("project_id") or "").strip()
+
+        if record_type not in ["receivable", "payable"]:
+            flash("請選擇正確的帳款類型", "danger")
+            return redirect(url_for("ar_ap_create"))
+
+        if not title:
+            flash("請輸入標題", "danger")
+            return redirect(url_for("ar_ap_create"))
+
+        try:
+            amount_value = float(amount)
+        except ValueError:
+            flash("金額格式錯誤", "danger")
+            return redirect(url_for("ar_ap_create"))
+
+        if status not in ["pending", "completed", "cancelled"]:
+            status = "pending"
+
+        project_id_value = int(project_id) if project_id else None
+
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO receivable_payable_records (
+                        record_type, title, counterparty, amount, due_date,
+                        status, note, project_id, created_by
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        record_type,
+                        title,
+                        counterparty,
+                        amount_value,
+                        due_date or None,
+                        status,
+                        note,
+                        project_id_value,
+                        int(current_user.id),
+                    ),
+                )
+            conn.commit()
+
+        flash("應收 / 應付紀錄建立成功", "success")
+        return redirect(url_for("ar_ap_index"))
+
+    projects = []
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, name
+                FROM projects
+                WHERE is_active = TRUE
+                ORDER BY id DESC
+                """
+            )
+            projects = cur.fetchall()
+
+    return render_template("ar_ap/create.html", projects=projects)
+
+@app.route("/ar-ap/<int:record_id>/edit", methods=["GET", "POST"])
+@login_required
+@permission_required("edit_finance")
+def ar_ap_edit(record_id: int):
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT *
+                FROM receivable_payable_records
+                WHERE id = %s
+                """,
+                (record_id,),
+            )
+            record = cur.fetchone()
+
+            if not record:
+                abort(404)
+
+            if request.method == "POST":
+                record_type = (request.form.get("record_type") or "").strip()
+                title = (request.form.get("title") or "").strip()
+                counterparty = (request.form.get("counterparty") or "").strip()
+                amount = (request.form.get("amount") or "").strip()
+                due_date = (request.form.get("due_date") or "").strip()
+                status = (request.form.get("status") or "").strip()
+                note = (request.form.get("note") or "").strip()
+                project_id = (request.form.get("project_id") or "").strip()
+
+                if record_type not in ["receivable", "payable"]:
+                    flash("請選擇正確的帳款類型", "danger")
+                    return redirect(url_for("ar_ap_edit", record_id=record_id))
+
+                if not title:
+                    flash("請輸入標題", "danger")
+                    return redirect(url_for("ar_ap_edit", record_id=record_id))
+
+                try:
+                    amount_value = float(amount)
+                except ValueError:
+                    flash("金額格式錯誤", "danger")
+                    return redirect(url_for("ar_ap_edit", record_id=record_id))
+
+                if status not in ["pending", "completed", "cancelled"]:
+                    status = "pending"
+
+                project_id_value = int(project_id) if project_id else None
+
+                cur.execute(
+                    """
+                    UPDATE receivable_payable_records
+                    SET record_type = %s,
+                        title = %s,
+                        counterparty = %s,
+                        amount = %s,
+                        due_date = %s,
+                        status = %s,
+                        note = %s,
+                        project_id = %s,
+                        updated_at = NOW()
+                    WHERE id = %s
+                    """,
+                    (
+                        record_type,
+                        title,
+                        counterparty,
+                        amount_value,
+                        due_date or None,
+                        status,
+                        note,
+                        project_id_value,
+                        record_id,
+                    ),
+                )
+                conn.commit()
+
+                flash("應收 / 應付紀錄更新成功", "success")
+                return redirect(url_for("ar_ap_index"))
+
+    projects = []
+    with get_db() as conn_projects:
+        with conn_projects.cursor() as cur_projects:
+            cur_projects.execute(
+                """
+                SELECT id, name
+                FROM projects
+                WHERE is_active = TRUE
+                ORDER BY id DESC
+                """
+            )
+            projects = cur_projects.fetchall()
+
+    return render_template("ar_ap/edit.html", record=record, projects=projects)
+
+@app.route("/ar-ap/<int:record_id>/mark-completed", methods=["POST"])
+@login_required
+@permission_required("edit_finance")
+def ar_ap_mark_completed(record_id: int):
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, status
+                FROM receivable_payable_records
+                WHERE id = %s
+                """,
+                (record_id,),
+            )
+            record = cur.fetchone()
+
+            if not record:
+                abort(404)
+
+            cur.execute(
+                """
+                UPDATE receivable_payable_records
+                SET status = 'completed',
+                    paid_received_at = NOW(),
+                    updated_at = NOW()
+                WHERE id = %s
+                """,
+                (record_id,),
+            )
+            conn.commit()
+
+    flash("已更新為完成狀態", "success")
+    return redirect(url_for("ar_ap_index"))
+
 
 @app.route("/finance/categories")
 @login_required

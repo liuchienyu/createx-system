@@ -44,7 +44,9 @@
         {% endif %}
 
         <li><a href="{{ url_for('project_index') }}">專案管理</a></li>
-
+        {% if user.has_permission('view_finance') %}
+            <li><a href="{{ url_for('ar_ap_index') }}">應收應付管理</a></li>
+        {% endif %}
     </ul>
 </div>
 {% endblock %}

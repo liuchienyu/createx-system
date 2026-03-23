@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}新增應收應付 - Createx{% endblock %}
+{% block page_title %}新增應收應付{% endblock %}
+{% block page_subtitle %}建立待收款或待付款資料{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:760px;">
+    <form method="post">
+        <label>類型</label>
+        <select name="record_type" required>
+            <option value="">請選擇</option>
+            <option value="receivable">應收</option>
+            <option value="payable">應付</option>
+        </select>
+
+        <label>標題</label>
+        <input type="text" name="title" required>
+
+        <label>對象</label>
+        <input type="text" name="counterparty">
+
+        <label>金額</label>
+        <input type="number" name="amount" step="0.01" required>
+
+        <label>到期日</label>
+        <input type="date" name="due_date">
+
+        <label>狀態</label>
+        <select name="status">
+            <option value="pending" selected>待處理</option>
+            <option value="completed">已完成</option>
+            <option value="cancelled">已取消</option>
+        </select>
+
+        <label>專案 / 活動</label>
+        <select name="project_id">
+            <option value="">不指定</option>
+            {% for p in projects %}
+                <option value="{{ p.id }}">{{ p.name }}</option>
+            {% endfor %}
+        </select>
+
+        <label>備註</label>
+        <textarea name="note" rows="4"></textarea>
+
+        <button type="submit">建立帳款</button>
+    </form>
+</div>
+{% endblock %}

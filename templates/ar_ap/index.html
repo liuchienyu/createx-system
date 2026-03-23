@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}應收應付管理 - Createx{% endblock %}
+{% block page_title %}應收應付管理{% endblock %}
+{% block page_subtitle %}管理待收款、待付款與到期狀態{% endblock %}
+
+{% block content %}
+<div class="card">
+    <form method="get" style="display:flex; gap:12px; flex-wrap:wrap; align-items:end;">
+        <div>
+            <label>類型</label>
+            <select name="type">
+                <option value="">全部</option>
+                <option value="receivable" {% if record_type == 'receivable' %}selected{% endif %}>應收</option>
+                <option value="payable" {% if record_type == 'payable' %}selected{% endif %}>應付</option>
+            </select>
+        </div>
+
+        <div>
+            <label>狀態</label>
+            <select name="status">
+                <option value="">全部</option>
+                <option value="pending" {% if status == 'pending' %}selected{% endif %}>待處理</option>
+                <option value="completed" {% if status == 'completed' %}selected{% endif %}>已完成</option>
+                <option value="cancelled" {% if status == 'cancelled' %}selected{% endif %}>已取消</option>
+            </select>
+        </div>
+
+        <div>
+            <button type="submit">查詢</button>
+        </div>
+
+        {% if current_user.has_permission('edit_finance') %}
+        <div>
+            <a class="btn" href="{{ url_for('ar_ap_create') }}">新增帳款</a>
+        </div>
+        {% endif %}
+    </form>
+</div>
+
+<div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:16px; margin-bottom:20px;">
+    <div class="card">
+        <h3 style="margin-top:0;">待收款總額</h3>
+        <p style="font-size:28px; font-weight:bold; margin-bottom:0;">NT$ {{ "{:,.0f}".format(total_receivable) }}</p>
+    </div>
+    <div class="card">
+        <h3 style="margin-top:0;">待付款總額</h3>
+        <p style="font-size:28px; font-weight:bold; margin-bottom:0;">NT$ {{ "{:,.0f}".format(total_payable) }}</p>
+    </div>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>類型</th>
+                <th>標題</th>
+                <th>對象</th>
+                <th>金額</th>
+                <th>到期日</th>
+                <th>狀態</th>
+                <th>專案</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in records %}
+            <tr>
+                <td>{{ '應收' if r.record_type == 'receivable' else '應付' }}</td>
+                <td>{{ r.title }}</td>
+                <td>{{ r.counterparty or '' }}</td>
+                <td>NT$ {{ "{:,.0f}".format(r.amount) }}</td>
+                <td>{{ r.due_date or '' }}</td>
+                <td>
+                    {% if r.status == 'pending' %}待處理{% elif r.status == 'completed' %}已完成{% else %}已取消{% endif %}
+                </td>
+                <td>{{ r.project_name or '' }}</td>
+                <td>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        {% if current_user.has_permission('edit_finance') %}
+                        <a class="btn" href="{{ url_for('ar_ap_edit', record_id=r.id) }}">編輯</a>
+
+                        {% if r.status != 'completed' %}
+                        <form method="post" action="{{ url_for('ar_ap_mark_completed', record_id=r.id) }}">
+                            <button type="submit">標記完成</button>
+                        </form>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+
+            {% if not records %}
+            <tr>
+                <td colspan="8">目前沒有應收 / 應付資料</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -33,7 +33,9 @@
                 <a href="{{ url_for('finance_monthly_report') }}">月報表統計</a>
                 <a href="{{ url_for('finance_category_index') }}">財務分類管理</a>
                 {% endif %}
-
+                {% if current_user.has_permission('view_finance') %}
+                <a href="{{ url_for('ar_ap_index') }}">應收應付管理</a>
+                {% endif %}
                 <a href="{{ url_for('project_index') }}">專案管理</a>
                 
                 <a href="{{ url_for('logout') }}">登出</a>
