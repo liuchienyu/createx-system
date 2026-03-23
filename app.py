@@ -244,7 +244,9 @@ def init_db() -> None:
                 ADD COLUMN IF NOT EXISTS project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL;
                 """
             )
-
+    seed_rbac()
+    seed_admin_user()
+    seed_finance_categories()
 
 
 def seed_finance_categories():
@@ -280,9 +282,6 @@ def seed_finance_categories():
                 )
         conn.commit()
 
-    seed_rbac()
-    seed_admin_user()
-    seed_finance_categories()
 
 def get_finance_categories(category_type: str | None = None, only_active: bool = True):
     query = """
@@ -366,7 +365,7 @@ def seed_rbac() -> None:
 def seed_admin_user() -> None:
     admin_username = os.environ.get("CREATEX_INIT_ADMIN_USERNAME", "admin")
     admin_password = os.environ.get("CREATEX_INIT_ADMIN_PASSWORD", "1234")
-    admin_display_name = os.environ.get("CREATEX_INIT_ADMIN_DISPLAY_NAME", "Createx Admin")
+    admin_display_name = os.environ.get("CREATEX_INIT_ADMIN_DISPLAY_NAME", "劉建佑")
 
     with get_db() as conn:
         with conn.cursor() as cur:
