@@ -182,6 +182,36 @@ def init_db() -> None:
 
             cur.execute(
                 """
+                CREATE TABLE IF NOT EXISTS projects (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR(200) NOT NULL,
+                    description TEXT,
+                    start_date DATE,
+                    end_date DATE,
+                    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+                    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+                );
+                """
+            )
+
+            # 再建 finance_categories
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS finance_categories (
+                    id SERIAL PRIMARY KEY,
+                    category_type VARCHAR(20) NOT NULL,
+                    name VARCHAR(100) NOT NULL,
+                    sort_order INTEGER NOT NULL DEFAULT 0,
+                    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+                    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                    UNIQUE(category_type, name)
+                );
+                """
+            )
+
+            # 再建 finance_records
+            cur.execute(
+                """
                 CREATE TABLE IF NOT EXISTS finance_records (
                     id SERIAL PRIMARY KEY,
                     record_date DATE NOT NULL,
@@ -199,45 +229,19 @@ def init_db() -> None:
                 """
             )
 
-            cur.execute(
-                """
-                ALTER TABLE finance_records
-                ADD COLUMN IF NOT EXISTS project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL;
-                """
-            )
-
-            cur.execute(
-                """
-                CREATE TABLE IF NOT EXISTS finance_categories (
-                    id SERIAL PRIMARY KEY,
-                    category_type VARCHAR(20) NOT NULL,
-                    name VARCHAR(100) NOT NULL,
-                    sort_order INTEGER NOT NULL DEFAULT 0,
-                    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-                    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-                    UNIQUE(category_type, name)
-                );
-                """
-            )
-
-            cur.execute(
-                """
-                CREATE TABLE IF NOT EXISTS projects (
-                    id SERIAL PRIMARY KEY,
-                    name VARCHAR(200) NOT NULL,
-                    description TEXT,
-                    start_date DATE,
-                    end_date DATE,
-                    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-                    created_at TIMESTAMP NOT NULL DEFAULT NOW()
-                );
-                """
-            )
-
+            # 再補 category_id
             cur.execute(
                 """
                 ALTER TABLE finance_records
                 ADD COLUMN IF NOT EXISTS category_id INTEGER REFERENCES finance_categories(id) ON DELETE SET NULL;
+                """
+            )
+
+            # 再補 project_id
+            cur.execute(
+                """
+                ALTER TABLE finance_records
+                ADD COLUMN IF NOT EXISTS project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL;
                 """
             )
 
