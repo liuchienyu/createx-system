@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>使用者管理 - Createx</title>
+</head>
+<body>
+    <h1>使用者管理</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul>
+          {% for category, message in messages %}
+            <li>[{{ category }}] {{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    <table border="1" cellpadding="8">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>帳號</th>
+                <th>顯示名稱</th>
+                <th>是否啟用</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+            <tr>
+                <td>{{ u.id }}</td>
+                <td>{{ u.username }}</td>
+                <td>{{ u.display_name }}</td>
+                <td>{{ '是' if u.is_active else '否' }}</td>
+                <td>
+                    <a href="{{ url_for('assign_user_roles', user_id=u.id) }}">指派角色</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <p><a href="{{ url_for('home') }}">回首頁</a></p>
+</body>
+</html>

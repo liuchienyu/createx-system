@@ -7,6 +7,27 @@
 <body>
     <h1>歡迎，{{ user.display_name }}</h1>
     <p>你已成功登入 Createx 辦公系統。</p>
+
+    <h3>你的角色</h3>
+    <ul>
+        {% for role in user.roles %}
+            <li>{{ role }}</li>
+        {% endfor %}
+    </ul>
+
+    <h3>功能入口</h3>
+    <ul>
+        <li><a href="{{ url_for('my_permissions') }}">查看我的權限</a></li>
+
+        {% if user.has_permission('admin_users') %}
+            <li><a href="{{ url_for('admin_users') }}">使用者管理</a></li>
+        {% endif %}
+
+        {% if user.has_permission('admin_roles') %}
+            <li><a href="{{ url_for('admin_roles') }}">角色管理</a></li>
+        {% endif %}
+    </ul>
+
     <a href="{{ url_for('logout') }}">登出</a>
 </body>
 </html>

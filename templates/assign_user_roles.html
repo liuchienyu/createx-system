@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>指派角色 - Createx</title>
+</head>
+<body>
+    <h1>指派角色：{{ target_user.display_name or target_user.username }}</h1>
+
+    <form method="post">
+        {% for role in all_roles %}
+            <div>
+                <label>
+                    <input
+                        type="checkbox"
+                        name="role_ids"
+                        value="{{ role.id }}"
+                        {% if role.id in current_role_ids %}checked{% endif %}
+                    >
+                    {{ role.name }} - {{ role.description }}
+                </label>
+            </div>
+        {% endfor %}
+
+        <button type="submit">儲存</button>
+    </form>
+
+    <p><a href="{{ url_for('admin_users') }}">回使用者管理</a></p>
+</body>
+</html>
