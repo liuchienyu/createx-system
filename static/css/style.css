@@ -182,3 +182,21 @@ label {
     display: block;
     margin-top: 10px;
 }
+
+.btn-danger,
+button.btn-danger {
+    background: #dc2626;
+    color: #fff;
+}
+
+.btn-warning,
+button.btn-warning {
+    background: #d97706;
+    color: #fff;
+}
+
+.btn-secondary,
+button.btn-secondary {
+    background: #6b7280;
+    color: #fff;
+}

@@ -501,6 +501,266 @@ def admin_users():
 
     return render_template("admin_users.html", users=users)
 
+@app.route("/admin/users/<int:user_id>/edit", methods=["GET", "POST"])
+@login_required
+@permission_required("admin_users")
+def edit_user(user_id: int):
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, username, display_name, is_active
+                FROM users
+                WHERE id = %s
+                """,
+                (user_id,),
+            )
+            user_row = cur.fetchone()
+
+            if not user_row:
+                abort(404)
+
+            if request.method == "POST":
+                display_name = (request.form.get("display_name") or "").strip()
+                password = request.form.get("password") or ""
+                is_active = request.form.get("is_active") == "on"
+
+                # 🚨 防止把自己停用
+                if int(current_user.id) == user_id and not is_active:
+                    flash("不能停用目前正在登入的帳號", "danger")
+                    return redirect(url_for("edit_user", user_id=user_id))
+                
+                # 檢查該 user 是否為唯一 Owner
+                with get_db() as conn_check:
+                    with conn_check.cursor() as cur_check:
+                        cur_check.execute(
+                            """
+                            SELECT COUNT(*) AS cnt
+                            FROM user_roles ur
+                            JOIN roles r ON r.id = ur.role_id
+                            WHERE r.name = 'Owner'
+                            """
+                        )
+                        owner_count = cur_check.fetchone()["cnt"]
+
+                        cur_check.execute(
+                            """
+                            SELECT COUNT(*) AS is_owner
+                            FROM user_roles ur
+                            JOIN roles r ON r.id = ur.role_id
+                            WHERE ur.user_id = %s AND r.name = 'Owner'
+                            """,
+                            (user_id,),
+                        )
+                        is_owner = cur_check.fetchone()["is_owner"]
+
+                if is_owner and owner_count <= 1 and not is_active:
+                    flash("至少需要一個 Owner，無法停用唯一管理員", "danger")
+                    return redirect(url_for("edit_user", user_id=user_id))
+
+                if not display_name:
+                    display_name = user_row["username"]
+
+                if password:
+                    cur.execute(
+                        """
+                        UPDATE users
+                        SET display_name = %s,
+                            password_hash = %s,
+                            is_active = %s
+                        WHERE id = %s
+                        """,
+                        (
+                            display_name,
+                            generate_password_hash(password),
+                            is_active,
+                            user_id,
+                        ),
+                    )
+                else:
+                    cur.execute(
+                        """
+                        UPDATE users
+                        SET display_name = %s,
+                            is_active = %s
+                        WHERE id = %s
+                        """,
+                        (
+                            display_name,
+                            is_active,
+                            user_id,
+                        ),
+                    )
+
+                conn.commit()
+                flash("使用者資料已更新", "success")
+                return redirect(url_for("admin_users"))
+
+    return render_template("edit_user.html", target_user=user_row)
+
+@app.route("/admin/users/<int:user_id>/toggle-active", methods=["POST"])
+@login_required
+@permission_required("admin_users")
+def toggle_user_active(user_id: int):
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, username, display_name, is_active
+                FROM users
+                WHERE id = %s
+                """,
+                (user_id,),
+            )
+            user_row = cur.fetchone()
+
+            if not user_row:
+                abort(404)
+
+            new_active = not user_row["is_active"]
+
+            # 不可停用自己
+            if int(current_user.id) == user_id and not new_active:
+                flash("不能停用目前正在登入的帳號", "danger")
+                return redirect(url_for("admin_users"))
+
+            # 不可停用唯一 Owner
+            if not new_active:
+                cur.execute(
+                    """
+                    SELECT COUNT(*) AS owner_count
+                    FROM user_roles ur
+                    JOIN roles r ON r.id = ur.role_id
+                    WHERE r.name = 'Owner'
+                    """
+                )
+                owner_count = cur.fetchone()["owner_count"]
+
+                cur.execute(
+                    """
+                    SELECT COUNT(*) AS is_owner
+                    FROM user_roles ur
+                    JOIN roles r ON r.id = ur.role_id
+                    WHERE ur.user_id = %s AND r.name = 'Owner'
+                    """,
+                    (user_id,),
+                )
+                is_owner = cur.fetchone()["is_owner"]
+
+                if is_owner and owner_count <= 1:
+                    flash("至少需要一個 Owner，無法停用唯一管理員", "danger")
+                    return redirect(url_for("admin_users"))
+
+            cur.execute(
+                """
+                UPDATE users
+                SET is_active = %s
+                WHERE id = %s
+                """,
+                (new_active, user_id),
+            )
+            conn.commit()
+
+    flash("使用者狀態已更新", "success")
+    return redirect(url_for("admin_users"))
+
+@app.route("/admin/users/<int:user_id>/reset-password", methods=["GET", "POST"])
+@login_required
+@permission_required("admin_users")
+def reset_user_password(user_id: int):
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, username, display_name, is_active
+                FROM users
+                WHERE id = %s
+                """,
+                (user_id,),
+            )
+            user_row = cur.fetchone()
+
+            if not user_row:
+                abort(404)
+
+            if request.method == "POST":
+                new_password = request.form.get("new_password") or ""
+
+                if not new_password.strip():
+                    flash("請輸入新密碼", "danger")
+                    return redirect(url_for("reset_user_password", user_id=user_id))
+
+                cur.execute(
+                    """
+                    UPDATE users
+                    SET password_hash = %s
+                    WHERE id = %s
+                    """,
+                    (generate_password_hash(new_password), user_id),
+                )
+                conn.commit()
+
+                flash("密碼已重設成功", "success")
+                return redirect(url_for("admin_users"))
+
+    return render_template("reset_user_password.html", target_user=user_row)
+
+@app.route("/admin/users/<int:user_id>/delete", methods=["POST"])
+@login_required
+@permission_required("admin_users")
+def delete_user(user_id: int):
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, username, display_name
+                FROM users
+                WHERE id = %s
+                """,
+                (user_id,),
+            )
+            user_row = cur.fetchone()
+
+            if not user_row:
+                abort(404)
+
+            # 不可刪除自己
+            if int(current_user.id) == user_id:
+                flash("不能刪除目前正在登入的帳號", "danger")
+                return redirect(url_for("admin_users"))
+
+            # 不可刪除唯一 Owner
+            cur.execute(
+                """
+                SELECT COUNT(*) AS owner_count
+                FROM user_roles ur
+                JOIN roles r ON r.id = ur.role_id
+                WHERE r.name = 'Owner'
+                """
+            )
+            owner_count = cur.fetchone()["owner_count"]
+
+            cur.execute(
+                """
+                SELECT COUNT(*) AS is_owner
+                FROM user_roles ur
+                JOIN roles r ON r.id = ur.role_id
+                WHERE ur.user_id = %s AND r.name = 'Owner'
+                """,
+                (user_id,),
+            )
+            is_owner = cur.fetchone()["is_owner"]
+
+            if is_owner and owner_count <= 1:
+                flash("至少需要一個 Owner，無法刪除唯一管理員", "danger")
+                return redirect(url_for("admin_users"))
+
+            cur.execute("DELETE FROM users WHERE id = %s", (user_id,))
+            conn.commit()
+
+    flash("使用者已刪除", "success")
+    return redirect(url_for("admin_users"))
+
 @app.route("/admin/users/create", methods=["GET", "POST"])
 @login_required
 @permission_required("admin_users")

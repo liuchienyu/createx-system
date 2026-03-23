@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}編輯使用者 - Createx{% endblock %}
+{% block page_title %}編輯使用者{% endblock %}
+{% block page_subtitle %}修改使用者名稱、密碼與啟用狀態{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 720px;">
+    <form method="post">
+        <label>帳號</label>
+        <input type="text" value="{{ target_user.username }}" disabled>
+
+        <label>顯示名稱</label>
+        <input type="text" name="display_name" value="{{ target_user.display_name or '' }}">
+
+        <label>新密碼</label>
+        <input type="password" name="password" placeholder="留空則不變更密碼">
+
+        <div style="margin: 12px 0 18px;">
+            <label style="font-weight: normal;">
+                <input
+                    type="checkbox"
+                    name="is_active"
+                    {% if target_user.is_active %}checked{% endif %}
+                >
+                啟用帳號
+            </label>
+        </div>
+
+        <button type="submit">儲存變更</button>
+    </form>
+</div>
+{% endblock %}

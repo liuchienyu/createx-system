@@ -29,7 +29,23 @@
                 <td>{{ u.display_name }}</td>
                 <td>{{ '是' if u.is_active else '否' }}</td>
                 <td>
-                    <a class="btn" href="{{ url_for('assign_user_roles', user_id=u.id) }}">指派角色</a>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <a class="btn btn-secondary" href="{{ url_for('edit_user', user_id=u.id) }}">編輯</a>
+                        <a class="btn btn-secondary" href="{{ url_for('assign_user_roles', user_id=u.id) }}">指派角色</a>
+                        <a class="btn btn-warning" href="{{ url_for('reset_user_password', user_id=u.id) }}">重設密碼</a>
+                        <button type="submit" class="btn btn-secondary">{{ '停用' if u.is_active else '啟用' }}</button>
+                        <button type="submit" class="btn btn-danger">刪除</button>
+                        </form>
+
+                        <form
+                            method="post"
+                            action="{{ url_for('delete_user', user_id=u.id) }}"
+                            style="display: inline;"
+                            onsubmit="return confirm('確定要刪除此使用者嗎？此動作無法復原。');"
+                        >
+                            <button type="submit">刪除</button>
+                        </form>
+                    </div>
                 </td>
             </tr>
             {% endfor %}
