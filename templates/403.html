@@ -1,12 +1,12 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-    <meta charset="UTF-8">
-    <title>403 Forbidden</title>
-</head>
-<body>
-    <h1>403 - 你沒有權限使用這個功能</h1>
+{% extends "base.html" %}
+
+{% block title %}403 - Createx{% endblock %}
+{% block page_title %}403 權限不足{% endblock %}
+{% block page_subtitle %}你目前沒有此功能的使用權限{% endblock %}
+
+{% block content %}
+<div class="card">
     <p>請聯絡系統管理員開通權限。</p>
-    <a href="{{ url_for('home') }}">回首頁</a>
-</body>
-</html>
+    <a class="btn" href="{{ url_for('home') }}">回首頁</a>
+</div>
+{% endblock %}

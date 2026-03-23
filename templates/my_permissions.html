@@ -1,26 +1,25 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-    <meta charset="UTF-8">
-    <title>我的權限 - Createx</title>
-</head>
-<body>
-    <h1>{{ user.display_name }} 的權限資訊</h1>
+{% extends "base.html" %}
 
+{% block title %}我的權限 - Createx{% endblock %}
+{% block page_title %}我的權限{% endblock %}
+{% block page_subtitle %}檢視目前帳號所擁有的角色與權限{% endblock %}
+
+{% block content %}
+<div class="card">
     <h3>角色</h3>
     <ul>
         {% for role in roles %}
             <li>{{ role }}</li>
         {% endfor %}
     </ul>
+</div>
 
+<div class="card">
     <h3>權限</h3>
     <ul>
         {% for perm in permissions %}
             <li>{{ perm }}</li>
         {% endfor %}
     </ul>
-
-    <a href="{{ url_for('home') }}">回首頁</a>
-</body>
-</html>
+</div>
+{% endblock %}

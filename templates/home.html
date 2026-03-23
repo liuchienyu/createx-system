@@ -1,20 +1,25 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-    <meta charset="UTF-8">
-    <title>首頁 - Createx</title>
-</head>
-<body>
-    <h1>歡迎，{{ user.display_name }}</h1>
-    <p>你已成功登入 Createx 辦公系統。</p>
+{% extends "base.html" %}
 
+{% block title %}首頁 - Createx{% endblock %}
+{% block page_title %}首頁{% endblock %}
+{% block page_subtitle %}歡迎回來，這裡是系統總覽{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h3>歡迎，{{ user.display_name }}</h3>
+    <p>你已成功登入 Createx 辦公系統。</p>
+</div>
+
+<div class="card">
     <h3>你的角色</h3>
     <ul>
         {% for role in user.roles %}
             <li>{{ role }}</li>
         {% endfor %}
     </ul>
+</div>
 
+<div class="card">
     <h3>功能入口</h3>
     <ul>
         <li><a href="{{ url_for('my_permissions') }}">查看我的權限</a></li>
@@ -27,7 +32,5 @@
             <li><a href="{{ url_for('admin_roles') }}">角色管理</a></li>
         {% endif %}
     </ul>
-
-    <a href="{{ url_for('logout') }}">登出</a>
-</body>
-</html>
+</div>
+{% endblock %}

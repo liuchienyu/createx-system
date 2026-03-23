@@ -1,22 +1,11 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-    <meta charset="UTF-8">
-    <title>登入 - Createx</title>
-</head>
-<body>
-    <h1>Createx 登入</h1>
+{% extends "base.html" %}
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <ul>
-          {% for category, message in messages %}
-            <li>[{{ category }}] {{ message }}</li>
-          {% endfor %}
-        </ul>
-      {% endif %}
-    {% endwith %}
+{% block title %}登入 - Createx{% endblock %}
+{% block page_title %}登入{% endblock %}
+{% block page_subtitle %}請輸入帳號密碼登入系統{% endblock %}
 
+{% block content %}
+<div class="card" style="max-width: 480px;">
     <form method="post">
         <div>
             <label>帳號</label>
@@ -28,5 +17,5 @@
         </div>
         <button type="submit">登入</button>
     </form>
-</body>
-</html>
+</div>
+{% endblock %}

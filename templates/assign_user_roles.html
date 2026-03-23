@@ -1,16 +1,17 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-    <meta charset="UTF-8">
-    <title>指派角色 - Createx</title>
-</head>
-<body>
-    <h1>指派角色：{{ target_user.display_name or target_user.username }}</h1>
+{% extends "base.html" %}
+
+{% block title %}指派角色 - Createx{% endblock %}
+{% block page_title %}指派角色{% endblock %}
+{% block page_subtitle %}設定使用者可擁有的角色{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h3>對象：{{ target_user.display_name or target_user.username }}</h3>
 
     <form method="post">
         {% for role in all_roles %}
-            <div>
-                <label>
+            <div style="margin-bottom: 10px;">
+                <label style="font-weight: normal;">
                     <input
                         type="checkbox"
                         name="role_ids"
@@ -24,7 +25,5 @@
 
         <button type="submit">儲存</button>
     </form>
-
-    <p><a href="{{ url_for('admin_users') }}">回使用者管理</a></p>
-</body>
-</html>
+</div>
+{% endblock %}

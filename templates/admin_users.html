@@ -1,23 +1,12 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-    <meta charset="UTF-8">
-    <title>使用者管理 - Createx</title>
-</head>
-<body>
-    <h1>使用者管理</h1>
+{% extends "base.html" %}
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <ul>
-          {% for category, message in messages %}
-            <li>[{{ category }}] {{ message }}</li>
-          {% endfor %}
-        </ul>
-      {% endif %}
-    {% endwith %}
+{% block title %}使用者管理 - Createx{% endblock %}
+{% block page_title %}使用者管理{% endblock %}
+{% block page_subtitle %}查看並管理系統使用者{% endblock %}
 
-    <table border="1" cellpadding="8">
+{% block content %}
+<div class="card">
+    <table>
         <thead>
             <tr>
                 <th>ID</th>
@@ -35,13 +24,11 @@
                 <td>{{ u.display_name }}</td>
                 <td>{{ '是' if u.is_active else '否' }}</td>
                 <td>
-                    <a href="{{ url_for('assign_user_roles', user_id=u.id) }}">指派角色</a>
+                    <a class="btn" href="{{ url_for('assign_user_roles', user_id=u.id) }}">指派角色</a>
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-
-    <p><a href="{{ url_for('home') }}">回首頁</a></p>
-</body>
-</html>
+</div>
+{% endblock %}

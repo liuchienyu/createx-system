@@ -1,13 +1,12 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-    <meta charset="UTF-8">
-    <title>角色管理 - Createx</title>
-</head>
-<body>
-    <h1>角色管理</h1>
+{% extends "base.html" %}
 
-    <table border="1" cellpadding="8">
+{% block title %}角色管理 - Createx{% endblock %}
+{% block page_title %}角色管理{% endblock %}
+{% block page_subtitle %}查看系統角色與權限配置{% endblock %}
+
+{% block content %}
+<div class="card">
+    <table>
         <thead>
             <tr>
                 <th>ID</th>
@@ -27,7 +26,5 @@
             {% endfor %}
         </tbody>
     </table>
-
-    <p><a href="{{ url_for('home') }}">回首頁</a></p>
-</body>
-</html>
+</div>
+{% endblock %}
