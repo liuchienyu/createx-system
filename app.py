@@ -201,6 +201,13 @@ def init_db() -> None:
 
             cur.execute(
                 """
+                ALTER TABLE finance_records
+                ADD COLUMN IF NOT EXISTS project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL;
+                """
+            )
+
+            cur.execute(
+                """
                 CREATE TABLE IF NOT EXISTS finance_categories (
                     id SERIAL PRIMARY KEY,
                     category_type VARCHAR(20) NOT NULL,
@@ -209,6 +216,20 @@ def init_db() -> None:
                     is_active BOOLEAN NOT NULL DEFAULT TRUE,
                     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
                     UNIQUE(category_type, name)
+                );
+                """
+            )
+
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS projects (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR(200) NOT NULL,
+                    description TEXT,
+                    start_date DATE,
+                    end_date DATE,
+                    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+                    created_at TIMESTAMP NOT NULL DEFAULT NOW()
                 );
                 """
             )
@@ -1337,6 +1358,8 @@ def finance_create():
         payment_method = (request.form.get("payment_method") or "").strip()
         counterparty = (request.form.get("counterparty") or "").strip()
         note = (request.form.get("note") or "").strip()
+        project_id = (request.form.get("project_id") or "").strip()
+       
 
         if not record_date:
             flash("請輸入日期", "danger")
@@ -1384,29 +1407,32 @@ def finance_create():
             flash("金額格式錯誤", "danger")
             return redirect(url_for("finance_create"))
 
+        project_id_value = int(project_id) if project_id else None
+
         with get_db() as conn:
             with conn.cursor() as cur:
                 cur.execute(
-                """
-                INSERT INTO finance_records (
-                    record_date, category_type, category_id, category_name, item_name,
-                    amount, payment_method, counterparty, note, created_by
+                    """
+                    INSERT INTO finance_records (
+                        record_date, category_type, category_id, category_name, item_name,
+                        amount, payment_method, counterparty, note, created_by, project_id
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        record_date,
+                        category_type,
+                        selected_category["id"],
+                        category_name,
+                        item_name,
+                        amount_value,
+                        payment_method,
+                        counterparty,
+                        note,
+                        int(current_user.id),
+                        project_id_value,
+                    ),
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """,
-                (
-                    record_date,
-                    category_type,
-                    selected_category["id"],
-                    category_name,
-                    item_name,
-                    amount_value,
-                    payment_method,
-                    counterparty,
-                    note,
-                    int(current_user.id),
-                ),
-            )
             conn.commit()
 
         flash("財務紀錄新增成功", "success")
@@ -1415,11 +1441,19 @@ def finance_create():
     income_categories = get_finance_categories("income")
     expense_categories = get_finance_categories("expense")
 
+
+    projects = []
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, name FROM projects WHERE is_active = TRUE ORDER BY id DESC")
+            projects = cur.fetchall()
+            
     return render_template(
-        "finance/create.html",
-        income_categories=income_categories,
-        expense_categories=expense_categories,
-)
+    "finance/create.html",
+    income_categories=income_categories,
+    expense_categories=expense_categories,
+    projects=projects,
+    )
 
 @app.route("/finance/<int:record_id>/edit", methods=["GET", "POST"])
 @login_required
@@ -1714,6 +1748,49 @@ def finance_monthly_report():
         income_by_category=income_by_category,
         expense_by_category=expense_by_category,
     )
+
+@app.route("/projects")
+@login_required
+def project_index():
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, name, description, start_date, end_date, is_active
+                FROM projects
+                ORDER BY id DESC
+                """
+            )
+            projects = cur.fetchall()
+
+    return render_template("projects/index.html", projects=projects)
+
+@app.route("/projects/create", methods=["GET", "POST"])
+@login_required
+def project_create():
+    if request.method == "POST":
+        name = (request.form.get("name") or "").strip()
+        description = (request.form.get("description") or "").strip()
+
+        if not name:
+            flash("請輸入專案名稱", "danger")
+            return redirect(url_for("project_create"))
+
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO projects (name, description)
+                    VALUES (%s, %s)
+                    """,
+                    (name, description),
+                )
+            conn.commit()
+
+        flash("專案建立成功", "success")
+        return redirect(url_for("project_index"))
+
+    return render_template("projects/create.html")
 
 
 
