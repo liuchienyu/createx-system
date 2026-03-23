@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}新增角色 - Createx{% endblock %}
+{% block page_title %}新增角色{% endblock %}
+{% block page_subtitle %}建立新角色並配置對應權限{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 760px;">
+    <form method="post">
+        <label>角色名稱</label>
+        <input type="text" name="name" required>
+
+        <label>角色說明</label>
+        <textarea name="description" rows="3"></textarea>
+
+        <label>權限設定</label>
+        <div style="border: 1px solid #d1d5db; border-radius: 10px; padding: 12px; margin-bottom: 16px;">
+            {% for permission in permissions %}
+                <div style="margin-bottom: 8px;">
+                    <label style="font-weight: normal;">
+                        <input type="checkbox" name="permission_ids" value="{{ permission.id }}">
+                        {{ permission.code }} - {{ permission.description }}
+                    </label>
+                </div>
+            {% endfor %}
+        </div>
+
+        <button type="submit">建立角色</button>
+    </form>
+</div>
+{% endblock %}

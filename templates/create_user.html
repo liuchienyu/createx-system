@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}新增使用者 - Createx{% endblock %}
+{% block page_title %}新增使用者{% endblock %}
+{% block page_subtitle %}建立新的系統帳號並指派角色{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 720px;">
+    <form method="post">
+        <label>帳號</label>
+        <input type="text" name="username" required>
+
+        <label>顯示名稱</label>
+        <input type="text" name="display_name">
+
+        <label>密碼</label>
+        <input type="password" name="password" required>
+
+        <div style="margin: 12px 0 18px;">
+            <label style="font-weight: normal;">
+                <input type="checkbox" name="is_active" checked>
+                啟用帳號
+            </label>
+        </div>
+
+        <label>角色</label>
+        <div style="border: 1px solid #d1d5db; border-radius: 10px; padding: 12px; margin-bottom: 16px;">
+            {% for role in all_roles %}
+                <div style="margin-bottom: 8px;">
+                    <label style="font-weight: normal;">
+                        <input type="checkbox" name="role_ids" value="{{ role.id }}">
+                        {{ role.name }} - {{ role.description }}
+                    </label>
+                </div>
+            {% endfor %}
+        </div>
+
+        <button type="submit">建立使用者</button>
+    </form>
+</div>
+{% endblock %}

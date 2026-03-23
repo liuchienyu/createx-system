@@ -26,10 +26,12 @@
 
         {% if user.has_permission('admin_users') %}
             <li><a href="{{ url_for('admin_users') }}">使用者管理</a></li>
+            <li><a href="{{ url_for('create_user') }}">新增使用者</a></li>
         {% endif %}
 
         {% if user.has_permission('admin_roles') %}
             <li><a href="{{ url_for('admin_roles') }}">角色管理</a></li>
+            <li><a href="{{ url_for('create_role') }}">新增角色</a></li>
         {% endif %}
     </ul>
 </div>

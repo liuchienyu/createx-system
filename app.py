@@ -336,6 +336,18 @@ def permission_required(perm_code: str):
         return wrapped
     return decorator
 
+def get_all_permissions():
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, code, description
+                FROM permissions
+                ORDER BY code ASC
+                """
+            )
+            rows = cur.fetchall()
+    return rows
 
 # =========================
 # User model
@@ -489,6 +501,75 @@ def admin_users():
 
     return render_template("admin_users.html", users=users)
 
+@app.route("/admin/users/create", methods=["GET", "POST"])
+@login_required
+@permission_required("admin_users")
+def create_user():
+    if request.method == "POST":
+        username = (request.form.get("username") or "").strip()
+        display_name = (request.form.get("display_name") or "").strip()
+        password = request.form.get("password") or ""
+        is_active = request.form.get("is_active") == "on"
+        selected_role_ids = request.form.getlist("role_ids")
+
+        if not username:
+            flash("請輸入帳號", "danger")
+            return redirect(url_for("create_user"))
+
+        if not password:
+            flash("請輸入密碼", "danger")
+            return redirect(url_for("create_user"))
+
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT id FROM users WHERE username = %s", (username,))
+                exists = cur.fetchone()
+                if exists:
+                    flash("此帳號已存在", "danger")
+                    return redirect(url_for("create_user"))
+
+                cur.execute(
+                    """
+                    INSERT INTO users (username, password_hash, display_name, is_active)
+                    VALUES (%s, %s, %s, %s)
+                    RETURNING id
+                    """,
+                    (
+                        username,
+                        generate_password_hash(password),
+                        display_name or username,
+                        is_active,
+                    ),
+                )
+                new_user_id = cur.fetchone()["id"]
+
+                for role_id in selected_role_ids:
+                    cur.execute(
+                        """
+                        INSERT INTO user_roles (user_id, role_id)
+                        VALUES (%s, %s)
+                        ON CONFLICT (user_id, role_id) DO NOTHING
+                        """,
+                        (new_user_id, int(role_id)),
+                    )
+
+            conn.commit()
+
+        flash("使用者建立成功", "success")
+        return redirect(url_for("admin_users"))
+
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, name, description
+                FROM roles
+                ORDER BY id ASC
+                """
+            )
+            all_roles = cur.fetchall()
+
+    return render_template("create_user.html", all_roles=all_roles)
 
 @app.route("/admin/roles")
 @login_required
@@ -510,6 +591,54 @@ def admin_roles():
 
     return render_template("admin_roles.html", roles=roles)
 
+@app.route("/admin/roles/create", methods=["GET", "POST"])
+@login_required
+@permission_required("admin_roles")
+def create_role():
+    if request.method == "POST":
+        name = (request.form.get("name") or "").strip()
+        description = (request.form.get("description") or "").strip()
+        permission_ids = request.form.getlist("permission_ids")
+
+        if not name:
+            flash("請輸入角色名稱", "danger")
+            return redirect(url_for("create_role"))
+
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT id FROM roles WHERE name = %s", (name,))
+                exists = cur.fetchone()
+                if exists:
+                    flash("角色名稱已存在", "danger")
+                    return redirect(url_for("create_role"))
+
+                cur.execute(
+                    """
+                    INSERT INTO roles (name, description)
+                    VALUES (%s, %s)
+                    RETURNING id
+                    """,
+                    (name, description),
+                )
+                role_id = cur.fetchone()["id"]
+
+                for permission_id in permission_ids:
+                    cur.execute(
+                        """
+                        INSERT INTO role_permissions (role_id, permission_id)
+                        VALUES (%s, %s)
+                        ON CONFLICT (role_id, permission_id) DO NOTHING
+                        """,
+                        (role_id, int(permission_id)),
+                    )
+
+            conn.commit()
+
+        flash("角色建立成功", "success")
+        return redirect(url_for("admin_roles"))
+
+    permissions = get_all_permissions()
+    return render_template("create_role.html", permissions=permissions)
 
 @app.route("/admin/users/<int:user_id>/roles", methods=["GET", "POST"])
 @login_required
@@ -576,6 +705,91 @@ def assign_user_roles(user_id: int):
         current_role_ids=current_role_ids,
     )
 
+@app.route("/admin/roles/<int:role_id>/edit", methods=["GET", "POST"])
+@login_required
+@permission_required("admin_roles")
+def edit_role(role_id: int):
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, name, description
+                FROM roles
+                WHERE id = %s
+                """,
+                (role_id,),
+            )
+            role = cur.fetchone()
+
+            if not role:
+                abort(404)
+
+            if request.method == "POST":
+                name = (request.form.get("name") or "").strip()
+                description = (request.form.get("description") or "").strip()
+                permission_ids = request.form.getlist("permission_ids")
+
+                if not name:
+                    flash("請輸入角色名稱", "danger")
+                    return redirect(url_for("edit_role", role_id=role_id))
+
+                cur.execute(
+                    """
+                    SELECT id
+                    FROM roles
+                    WHERE name = %s AND id <> %s
+                    """,
+                    (name, role_id),
+                )
+                exists = cur.fetchone()
+                if exists:
+                    flash("角色名稱已被使用", "danger")
+                    return redirect(url_for("edit_role", role_id=role_id))
+
+                cur.execute(
+                    """
+                    UPDATE roles
+                    SET name = %s, description = %s
+                    WHERE id = %s
+                    """,
+                    (name, description, role_id),
+                )
+
+                cur.execute("DELETE FROM role_permissions WHERE role_id = %s", (role_id,))
+
+                for permission_id in permission_ids:
+                    cur.execute(
+                        """
+                        INSERT INTO role_permissions (role_id, permission_id)
+                        VALUES (%s, %s)
+                        ON CONFLICT (role_id, permission_id) DO NOTHING
+                        """,
+                        (role_id, int(permission_id)),
+                    )
+
+                conn.commit()
+                flash("角色更新成功", "success")
+                return redirect(url_for("admin_roles"))
+
+            cur.execute(
+                """
+                SELECT permission_id
+                FROM role_permissions
+                WHERE role_id = %s
+                """,
+                (role_id,),
+            )
+            current_permission_rows = cur.fetchall()
+            current_permission_ids = {row["permission_id"] for row in current_permission_rows}
+
+    permissions = get_all_permissions()
+
+    return render_template(
+        "edit_role.html",
+        role=role,
+        permissions=permissions,
+        current_permission_ids=current_permission_ids,
+    )
 
 @app.route("/forbidden")
 def forbidden():

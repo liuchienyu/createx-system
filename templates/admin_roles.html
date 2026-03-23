@@ -6,6 +6,11 @@
 
 {% block content %}
 <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="margin: 0;">角色列表</h3>
+        <a class="btn" href="{{ url_for('create_role') }}">新增角色</a>
+    </div>
+
     <table>
         <thead>
             <tr>
@@ -13,6 +18,7 @@
                 <th>角色名稱</th>
                 <th>說明</th>
                 <th>權限數量</th>
+                <th>操作</th>
             </tr>
         </thead>
         <tbody>
@@ -22,6 +28,9 @@
                 <td>{{ r.name }}</td>
                 <td>{{ r.description }}</td>
                 <td>{{ r.permission_count }}</td>
+                <td>
+                    <a class="btn" href="{{ url_for('edit_role', role_id=r.id) }}">編輯角色</a>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
