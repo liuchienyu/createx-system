@@ -365,7 +365,7 @@ def seed_rbac() -> None:
 
 def seed_admin_user() -> None:
     admin_username = os.environ.get("CREATEX_INIT_ADMIN_USERNAME", "admin")
-    admin_password = os.environ.get("CREATEX_INIT_ADMIN_PASSWORD", "admin123456")
+    admin_password = os.environ.get("CREATEX_INIT_ADMIN_PASSWORD", "1234")
     admin_display_name = os.environ.get("CREATEX_INIT_ADMIN_DISPLAY_NAME", "Createx Admin")
 
     with get_db() as conn:
