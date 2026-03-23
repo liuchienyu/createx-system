@@ -18,7 +18,25 @@
         </select>
 
         <label>分類</label>
-        <input type="text" name="category_name" value="{{ record.category_name }}" required>
+        <select name="category_id" required>
+            <option value="">請選擇分類</option>
+
+            <optgroup label="收入分類">
+                {% for c in income_categories %}
+                    <option value="{{ c.id }}" {% if record.category_id == c.id %}selected{% endif %}>
+                        {{ c.name }}
+                    </option>
+                {% endfor %}
+            </optgroup>
+
+            <optgroup label="支出分類">
+                {% for c in expense_categories %}
+                    <option value="{{ c.id }}" {% if record.category_id == c.id %}selected{% endif %}>
+                        {{ c.name }}
+                    </option>
+                {% endfor %}
+            </optgroup>
+        </select>
 
         <label>項目名稱</label>
         <input type="text" name="item_name" value="{{ record.item_name }}" required>

@@ -198,11 +198,90 @@ def init_db() -> None:
                 """
             )
 
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS finance_categories (
+                    id SERIAL PRIMARY KEY,
+                    category_type VARCHAR(20) NOT NULL,
+                    name VARCHAR(100) NOT NULL,
+                    sort_order INTEGER NOT NULL DEFAULT 0,
+                    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+                    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                    UNIQUE(category_type, name)
+                );
+                """
+            )
+
+            cur.execute(
+                """
+                ALTER TABLE finance_records
+                ADD COLUMN IF NOT EXISTS category_id INTEGER REFERENCES finance_categories(id) ON DELETE SET NULL;
+                """
+            )
+
+
+
+def seed_finance_categories():
+    default_categories = [
+        ("income", "票務收入", 1),
+        ("income", "周邊收入", 2),
+        ("income", "贊助收入", 3),
+        ("income", "合作分潤", 4),
+        ("income", "其他收入", 99),
+
+        ("expense", "活動成本", 1),
+        ("expense", "場地費", 2),
+        ("expense", "餐飲費", 3),
+        ("expense", "設計費", 4),
+        ("expense", "交通費", 5),
+        ("expense", "住宿費", 6),
+        ("expense", "人事費", 7),
+        ("expense", "行銷費", 8),
+        ("expense", "印刷製作費", 9),
+        ("expense", "其他支出", 99),
+    ]
+
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            for category_type, name, sort_order in default_categories:
+                cur.execute(
+                    """
+                    INSERT INTO finance_categories (category_type, name, sort_order, is_active)
+                    VALUES (%s, %s, %s, TRUE)
+                    ON CONFLICT (category_type, name) DO NOTHING
+                    """,
+                    (category_type, name, sort_order),
+                )
         conn.commit()
 
     seed_rbac()
     seed_admin_user()
+    seed_finance_categories()
 
+def get_finance_categories(category_type: str | None = None, only_active: bool = True):
+    query = """
+        SELECT id, category_type, name, sort_order, is_active
+        FROM finance_categories
+    """
+    conditions = []
+    params = []
+
+    if only_active:
+        conditions.append("is_active = TRUE")
+
+    if category_type:
+        conditions.append("category_type = %s")
+        params.append(category_type)
+
+    if conditions:
+        query += " WHERE " + " AND ".join(conditions)
+
+    query += " ORDER BY category_type ASC, sort_order ASC, id ASC"
+
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, params)
+            return cur.fetchall()
 
 def seed_rbac() -> None:
     with get_db() as conn:
@@ -1170,7 +1249,7 @@ def finance_create():
     if request.method == "POST":
         record_date = (request.form.get("record_date") or "").strip()
         category_type = (request.form.get("category_type") or "").strip()
-        category_name = (request.form.get("category_name") or "").strip()
+        category_id = (request.form.get("category_id") or "").strip()
         item_name = (request.form.get("item_name") or "").strip()
         amount = (request.form.get("amount") or "").strip()
         payment_method = (request.form.get("payment_method") or "").strip()
@@ -1184,10 +1263,34 @@ def finance_create():
         if category_type not in ["income", "expense"]:
             flash("請選擇正確的收支類型", "danger")
             return redirect(url_for("finance_create"))
-
-        if not category_name:
-            flash("請輸入分類", "danger")
+        
+        if not category_id:
+            flash("請選擇分類", "danger")
             return redirect(url_for("finance_create"))
+
+        selected_category = None
+
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT id, category_type, name
+                    FROM finance_categories
+                    WHERE id = %s AND is_active = TRUE
+                    """,
+                    (int(category_id),),
+                )
+                selected_category = cur.fetchone()
+
+        if not selected_category:
+            flash("分類不存在", "danger")
+            return redirect(url_for("finance_create"))
+
+        if selected_category["category_type"] != category_type:
+            flash("分類類型與收支類型不一致", "danger")
+            return redirect(url_for("finance_create"))
+
+        category_name = selected_category["name"]
 
         if not item_name:
             flash("請輸入項目名稱", "danger")
@@ -1202,31 +1305,39 @@ def finance_create():
         with get_db() as conn:
             with conn.cursor() as cur:
                 cur.execute(
-                    """
-                    INSERT INTO finance_records (
-                        record_date, category_type, category_name, item_name,
-                        amount, payment_method, counterparty, note, created_by
-                    )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    """,
-                    (
-                        record_date,
-                        category_type,
-                        category_name,
-                        item_name,
-                        amount_value,
-                        payment_method,
-                        counterparty,
-                        note,
-                        int(current_user.id),
-                    ),
+                """
+                INSERT INTO finance_records (
+                    record_date, category_type, category_id, category_name, item_name,
+                    amount, payment_method, counterparty, note, created_by
                 )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    record_date,
+                    category_type,
+                    selected_category["id"],
+                    category_name,
+                    item_name,
+                    amount_value,
+                    payment_method,
+                    counterparty,
+                    note,
+                    int(current_user.id),
+                ),
+            )
             conn.commit()
 
         flash("財務紀錄新增成功", "success")
         return redirect(url_for("finance_index"))
 
-    return render_template("finance/create.html")
+    income_categories = get_finance_categories("income")
+    expense_categories = get_finance_categories("expense")
+
+    return render_template(
+        "finance/create.html",
+        income_categories=income_categories,
+        expense_categories=expense_categories,
+)
 
 @app.route("/finance/<int:record_id>/edit", methods=["GET", "POST"])
 @login_required
@@ -1250,7 +1361,7 @@ def finance_edit(record_id: int):
             if request.method == "POST":
                 record_date = (request.form.get("record_date") or "").strip()
                 category_type = (request.form.get("category_type") or "").strip()
-                category_name = (request.form.get("category_name") or "").strip()
+                category_id = (request.form.get("category_id") or "").strip()
                 item_name = (request.form.get("item_name") or "").strip()
                 amount = (request.form.get("amount") or "").strip()
                 payment_method = (request.form.get("payment_method") or "").strip()
@@ -1265,8 +1376,30 @@ def finance_edit(record_id: int):
                     flash("請選擇正確的收支類型", "danger")
                     return redirect(url_for("finance_edit", record_id=record_id))
 
-                if not category_name:
-                    flash("請輸入分類", "danger")
+                if not category_id:
+                    flash("請選擇分類", "danger")
+                    return redirect(url_for("finance_edit", record_id=record_id))
+
+                selected_category = None
+
+                with get_db() as conn_check:
+                    with conn_check.cursor() as cur_check:
+                        cur_check.execute(
+                            """
+                            SELECT id, category_type, name
+                            FROM finance_categories
+                            WHERE id = %s AND is_active = TRUE
+                            """,
+                            (int(category_id),),
+                        )
+                        selected_category = cur_check.fetchone()
+
+                if not selected_category:
+                    flash("分類不存在", "danger")
+                    return redirect(url_for("finance_edit", record_id=record_id))
+
+                if selected_category["category_type"] != category_type:
+                    flash("分類類型與收支類型不一致", "danger")
                     return redirect(url_for("finance_edit", record_id=record_id))
 
                 if not item_name:
@@ -1284,6 +1417,7 @@ def finance_edit(record_id: int):
                     UPDATE finance_records
                     SET record_date = %s,
                         category_type = %s,
+                        category_id = %s,
                         category_name = %s,
                         item_name = %s,
                         amount = %s,
@@ -1296,7 +1430,8 @@ def finance_edit(record_id: int):
                     (
                         record_date,
                         category_type,
-                        category_name,
+                        selected_category["id"],
+                        selected_category["name"],
                         item_name,
                         amount_value,
                         payment_method,
@@ -1309,8 +1444,16 @@ def finance_edit(record_id: int):
 
                 flash("財務紀錄更新成功", "success")
                 return redirect(url_for("finance_index"))
+            
+    income_categories = get_finance_categories("income")
+    expense_categories = get_finance_categories("expense")
 
-    return render_template("finance/edit.html", record=record)
+    return render_template(
+        "finance/edit.html",
+        record=record,
+        income_categories=income_categories,
+        expense_categories=expense_categories,
+    )
 
 @app.route("/finance/<int:record_id>/delete", methods=["POST"])
 @login_required
@@ -1329,6 +1472,113 @@ def finance_delete(record_id: int):
 
     flash("財務紀錄已刪除", "success")
     return redirect(url_for("finance_index"))
+
+@app.route("/finance/categories")
+@login_required
+@permission_required("view_finance")
+def finance_category_index():
+    categories = get_finance_categories(category_type=None, only_active=False)
+    return render_template("finance/categories_index.html", categories=categories)
+
+@app.route("/finance/categories/create", methods=["GET", "POST"])
+@login_required
+@permission_required("edit_finance")
+def finance_category_create():
+    if request.method == "POST":
+        category_type = (request.form.get("category_type") or "").strip()
+        name = (request.form.get("name") or "").strip()
+        sort_order = (request.form.get("sort_order") or "0").strip()
+        is_active = request.form.get("is_active") == "on"
+
+        if category_type not in ["income", "expense"]:
+            flash("請選擇正確的分類類型", "danger")
+            return redirect(url_for("finance_category_create"))
+
+        if not name:
+            flash("請輸入分類名稱", "danger")
+            return redirect(url_for("finance_category_create"))
+
+        try:
+            sort_order_value = int(sort_order)
+        except ValueError:
+            flash("排序格式錯誤", "danger")
+            return redirect(url_for("finance_category_create"))
+
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO finance_categories (category_type, name, sort_order, is_active)
+                    VALUES (%s, %s, %s, %s)
+                    ON CONFLICT (category_type, name) DO NOTHING
+                    """,
+                    (category_type, name, sort_order_value, is_active),
+                )
+            conn.commit()
+
+        flash("財務分類新增成功", "success")
+        return redirect(url_for("finance_category_index"))
+
+    return render_template("finance/category_create.html")
+
+@app.route("/finance/categories/<int:category_id>/edit", methods=["GET", "POST"])
+@login_required
+@permission_required("edit_finance")
+def finance_category_edit(category_id: int):
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, category_type, name, sort_order, is_active
+                FROM finance_categories
+                WHERE id = %s
+                """,
+                (category_id,),
+            )
+            category = cur.fetchone()
+
+            if not category:
+                abort(404)
+
+            if request.method == "POST":
+                category_type = (request.form.get("category_type") or "").strip()
+                name = (request.form.get("name") or "").strip()
+                sort_order = (request.form.get("sort_order") or "0").strip()
+                is_active = request.form.get("is_active") == "on"
+
+                if category_type not in ["income", "expense"]:
+                    flash("請選擇正確的分類類型", "danger")
+                    return redirect(url_for("finance_category_edit", category_id=category_id))
+
+                if not name:
+                    flash("請輸入分類名稱", "danger")
+                    return redirect(url_for("finance_category_edit", category_id=category_id))
+
+                try:
+                    sort_order_value = int(sort_order)
+                except ValueError:
+                    flash("排序格式錯誤", "danger")
+                    return redirect(url_for("finance_category_edit", category_id=category_id))
+
+                cur.execute(
+                    """
+                    UPDATE finance_categories
+                    SET category_type = %s,
+                        name = %s,
+                        sort_order = %s,
+                        is_active = %s
+                    WHERE id = %s
+                    """,
+                    (category_type, name, sort_order_value, is_active, category_id),
+                )
+                conn.commit()
+
+                flash("財務分類更新成功", "success")
+                return redirect(url_for("finance_category_index"))
+
+    return render_template("finance/category_edit.html", category=category)
+
+
 
 
 # =========================

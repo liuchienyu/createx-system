@@ -16,9 +16,22 @@
             <option value="income">收入</option>
             <option value="expense">支出</option>
         </select>
-
         <label>分類</label>
-        <input type="text" name="category_name" placeholder="例如：票務收入、場地費、設計費" required>
+        <select name="category_id" required>
+            <option value="">請選擇分類</option>
+
+            <optgroup label="收入分類">
+                {% for c in income_categories %}
+                    <option value="{{ c.id }}">{{ c.name }}</option>
+                {% endfor %}
+            </optgroup>
+
+            <optgroup label="支出分類">
+                {% for c in expense_categories %}
+                    <option value="{{ c.id }}">{{ c.name }}</option>
+                {% endfor %}
+            </optgroup>
+        </select>
 
         <label>項目名稱</label>
         <input type="text" name="item_name" placeholder="例如：3月火鍋嘉年華票券收入" required>
