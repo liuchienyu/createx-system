@@ -1447,7 +1447,7 @@ def finance_create():
         with conn.cursor() as cur:
             cur.execute("SELECT id, name FROM projects WHERE is_active = TRUE ORDER BY id DESC")
             projects = cur.fetchall()
-            
+
     return render_template(
     "finance/create.html",
     income_categories=income_categories,
@@ -1483,6 +1483,7 @@ def finance_edit(record_id: int):
                 payment_method = (request.form.get("payment_method") or "").strip()
                 counterparty = (request.form.get("counterparty") or "").strip()
                 note = (request.form.get("note") or "").strip()
+                project_id = (request.form.get("project_id") or "").strip()
 
                 if not record_date:
                     flash("請輸入日期", "danger")
@@ -1527,6 +1528,8 @@ def finance_edit(record_id: int):
                 except ValueError:
                     flash("金額格式錯誤", "danger")
                     return redirect(url_for("finance_edit", record_id=record_id))
+                
+                project_id_value = int(project_id) if project_id else None
 
                 cur.execute(
                     """
@@ -1540,6 +1543,7 @@ def finance_edit(record_id: int):
                         payment_method = %s,
                         counterparty = %s,
                         note = %s,
+                        project_id = %s,
                         updated_at = NOW()
                     WHERE id = %s
                     """,
@@ -1553,6 +1557,7 @@ def finance_edit(record_id: int):
                         payment_method,
                         counterparty,
                         note,
+                        project_id_value,
                         record_id,
                     ),
                 )
@@ -1563,13 +1568,25 @@ def finance_edit(record_id: int):
             
     income_categories = get_finance_categories("income")
     expense_categories = get_finance_categories("expense")
-
+    projects = []
+    with get_db() as conn_projects:
+        with conn_projects.cursor() as cur_projects:
+            cur_projects.execute(
+                """
+                SELECT id, name
+                FROM projects
+                WHERE is_active = TRUE
+                ORDER BY id DESC
+                """
+            )
+            projects = cur_projects.fetchall()
     return render_template(
-        "finance/edit.html",
-        record=record,
-        income_categories=income_categories,
-        expense_categories=expense_categories,
-    )
+    "finance/edit.html",
+    record=record,
+    income_categories=income_categories,
+    expense_categories=expense_categories,
+    projects=projects,
+)
 
 @app.route("/finance/<int:record_id>/delete", methods=["POST"])
 @login_required

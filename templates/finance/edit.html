@@ -37,7 +37,15 @@
                 {% endfor %}
             </optgroup>
         </select>
-
+        <label>專案 / 活動</label>
+        <select name="project_id">
+            <option value="">不指定</option>
+            {% for p in projects %}
+                <option value="{{ p.id }}" {% if record.project_id == p.id %}selected{% endif %}>
+                    {{ p.name }}
+                </option>
+            {% endfor %}
+        </select>
         <label>項目名稱</label>
         <input type="text" name="item_name" value="{{ record.item_name }}" required>
 
