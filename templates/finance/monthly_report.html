@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}月報表統計 - Createx{% endblock %}
+{% block page_title %}月報表統計{% endblock %}
+{% block page_subtitle %}依月份查看收入、支出與分類統計{% endblock %}
+
+{% block content %}
+<div class="card">
+    <form method="get" style="display:flex; gap:12px; align-items:end; flex-wrap:wrap;">
+        <div>
+            <label>月份</label>
+            <input type="month" name="month" value="{{ month }}">
+        </div>
+        <div>
+            <button type="submit">查詢</button>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <h3>月統計總覽</h3>
+    <p>總收入：NT$ {{ "{:,.0f}".format(total_income) }}</p>
+    <p>總支出：NT$ {{ "{:,.0f}".format(total_expense) }}</p>
+    <p><strong>淨額：NT$ {{ "{:,.0f}".format(net_amount) }}</strong></p>
+</div>
+
+<div class="card">
+    <h3>收入分類統計</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>分類</th>
+                <th>金額</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in income_by_category %}
+            <tr>
+                <td>{{ r.category_name }}</td>
+                <td>NT$ {{ "{:,.0f}".format(r.total_amount) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h3>支出分類統計</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>分類</th>
+                <th>金額</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in expense_by_category %}
+            <tr>
+                <td>{{ r.category_name }}</td>
+                <td>NT$ {{ "{:,.0f}".format(r.total_amount) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

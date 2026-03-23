@@ -28,7 +28,10 @@
                 {% endif %}
 
                 {% if current_user.has_permission('view_finance') %}
+                <a href="{{ url_for('finance_dashboard') }}">財務儀表板</a>
                 <a href="{{ url_for('finance_index') }}">財務管理</a>
+                <a href="{{ url_for('finance_monthly_report') }}">月報表統計</a>
+                <a href="{{ url_for('finance_category_index') }}">財務分類管理</a>
                 {% endif %}
                 
                 <a href="{{ url_for('logout') }}">登出</a>

@@ -35,7 +35,8 @@
         {% endif %}
 
         {% if user.has_permission('view_finance') %}
-         <li><a href="{{ url_for('finance_index') }}">財務管理</a></li>
+            <li><a href="{{ url_for('finance_dashboard') }}">財務儀表板</a></li>
+            <li><a href="{{ url_for('finance_index') }}">財務管理</a></li>
         {% endif %}
         
         {% if user.has_permission('edit_finance') %}

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}財務儀表板 - Createx{% endblock %}
+{% block page_title %}財務儀表板{% endblock %}
+{% block page_subtitle %}查看本月財務概況與近期紀錄{% endblock %}
+
+{% block content %}
+<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px;">
+    <div class="card">
+        <h3 style="margin-top: 0;">本月總收入</h3>
+        <p style="font-size: 28px; font-weight: bold; margin-bottom: 0;">
+            NT$ {{ "{:,.0f}".format(total_income) }}
+        </p>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-top: 0;">本月總支出</h3>
+        <p style="font-size: 28px; font-weight: bold; margin-bottom: 0;">
+            NT$ {{ "{:,.0f}".format(total_expense) }}
+        </p>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-top: 0;">本月淨額</h3>
+        <p style="font-size: 28px; font-weight: bold; margin-bottom: 0;">
+            NT$ {{ "{:,.0f}".format(net_amount) }}
+        </p>
+    </div>
+</div>
+
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin-top: 0;">本月前 5 大支出分類</h3>
+        <span>{{ month_str }}</span>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>分類</th>
+                <th>金額</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in top_expense_categories %}
+            <tr>
+                <td>{{ item.category_name }}</td>
+                <td>NT$ {{ "{:,.0f}".format(item.total_amount) }}</td>
+            </tr>
+            {% endfor %}
+            {% if not top_expense_categories %}
+            <tr>
+                <td colspan="2">目前沒有支出資料</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin-top: 0;">最近 10 筆財務紀錄</h3>
+
+        <div style="display: flex; gap: 8px;">
+            <a class="btn" href="{{ url_for('finance_index') }}">查看全部</a>
+            {% if current_user.has_permission('edit_finance') %}
+            <a class="btn" href="{{ url_for('finance_create') }}">新增紀錄</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>日期</th>
+                <th>收支</th>
+                <th>分類</th>
+                <th>項目</th>
+                <th>金額</th>
+                <th>建立人</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in recent_records %}
+            <tr>
+                <td>{{ r.record_date }}</td>
+                <td>{{ '收入' if r.category_type == 'income' else '支出' }}</td>
+                <td>{{ r.category_name }}</td>
+                <td>{{ r.item_name }}</td>
+                <td>NT$ {{ "{:,.0f}".format(r.amount) }}</td>
+                <td>{{ r.created_by_name or '-' }}</td>
+            </tr>
+            {% endfor %}
+            {% if not recent_records %}
+            <tr>
+                <td colspan="6">目前沒有財務紀錄</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

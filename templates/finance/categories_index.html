@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}財務分類管理 - Createx{% endblock %}
+{% block page_title %}財務分類管理{% endblock %}
+{% block page_subtitle %}管理收入與支出的分類項目{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h3 style="margin:0;">分類列表</h3>
+        <a class="btn" href="{{ url_for('finance_category_create') }}">新增分類</a>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>類型</th>
+                <th>名稱</th>
+                <th>排序</th>
+                <th>啟用</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in categories %}
+            <tr>
+                <td>{{ c.id }}</td>
+                <td>{{ '收入' if c.category_type == 'income' else '支出' }}</td>
+                <td>{{ c.name }}</td>
+                <td>{{ c.sort_order }}</td>
+                <td>{{ '是' if c.is_active else '否' }}</td>
+                <td>
+                    <a class="btn" href="{{ url_for('finance_category_edit', category_id=c.id) }}">編輯</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

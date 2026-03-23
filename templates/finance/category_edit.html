@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}編輯財務分類 - Createx{% endblock %}
+{% block page_title %}編輯財務分類{% endblock %}
+{% block page_subtitle %}修改財務分類設定{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 760px;">
+    <form method="post">
+        <label>分類類型</label>
+        <select name="category_type" required>
+            <option value="income" {% if category.category_type == 'income' %}selected{% endif %}>收入</option>
+            <option value="expense" {% if category.category_type == 'expense' %}selected{% endif %}>支出</option>
+        </select>
+
+        <label>分類名稱</label>
+        <input type="text" name="name" value="{{ category.name }}" required>
+
+        <label>排序</label>
+        <input type="number" name="sort_order" value="{{ category.sort_order }}" required>
+
+        <div style="margin: 12px 0 18px;">
+            <label style="font-weight: normal;">
+                <input type="checkbox" name="is_active" {% if category.is_active %}checked{% endif %}>
+                啟用分類
+            </label>
+        </div>
+
+        <button type="submit">儲存變更</button>
+    </form>
+</div>
+{% endblock %}
