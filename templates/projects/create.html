@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}新增專案 - Createx{% endblock %}
+{% block page_title %}新增專案{% endblock %}
+{% block page_subtitle %}建立新的活動 / 專案資料{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 760px;">
+    <form method="post">
+        <label>專案名稱</label>
+        <input type="text" name="name" required>
+
+        <label>說明</label>
+        <textarea name="description" rows="4"></textarea>
+
+        <label>開始日期</label>
+        <input type="date" name="start_date">
+
+        <label>結束日期</label>
+        <input type="date" name="end_date">
+
+        <div style="margin: 12px 0 18px;">
+            <label style="font-weight: normal;">
+                <input type="checkbox" name="is_active" checked>
+                啟用專案
+            </label>
+        </div>
+
+        <button type="submit">建立專案</button>
+    </form>
+</div>

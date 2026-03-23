@@ -1792,6 +1792,9 @@ def project_create():
     if request.method == "POST":
         name = (request.form.get("name") or "").strip()
         description = (request.form.get("description") or "").strip()
+        start_date = (request.form.get("start_date") or "").strip()
+        end_date = (request.form.get("end_date") or "").strip()
+        is_active = request.form.get("is_active") == "on"
 
         if not name:
             flash("請輸入專案名稱", "danger")
@@ -1801,10 +1804,16 @@ def project_create():
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    INSERT INTO projects (name, description)
-                    VALUES (%s, %s)
+                    INSERT INTO projects (name, description, start_date, end_date, is_active)
+                    VALUES (%s, %s, %s, %s, %s)
                     """,
-                    (name, description),
+                    (
+                        name,
+                        description,
+                        start_date or None,
+                        end_date or None,
+                        is_active,
+                    ),
                 )
             conn.commit()
 
@@ -1813,7 +1822,56 @@ def project_create():
 
     return render_template("projects/create.html")
 
+@app.route("/projects/<int:project_id>/finance")
+@login_required
+def project_finance_report(project_id: int):
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, name, description, start_date, end_date, is_active
+                FROM projects
+                WHERE id = %s
+                """,
+                (project_id,),
+            )
+            project = cur.fetchone()
 
+            if not project:
+                abort(404)
+
+            cur.execute(
+                """
+                SELECT fr.id,
+                       fr.record_date,
+                       fr.category_type,
+                       fr.category_name,
+                       fr.item_name,
+                       fr.amount,
+                       fr.payment_method,
+                       fr.counterparty,
+                       fr.note,
+                       fr.created_at
+                FROM finance_records fr
+                WHERE fr.project_id = %s
+                ORDER BY fr.record_date DESC, fr.id DESC
+                """,
+                (project_id,),
+            )
+            records = cur.fetchall()
+
+    total_income = sum(float(r["amount"]) for r in records if r["category_type"] == "income")
+    total_expense = sum(float(r["amount"]) for r in records if r["category_type"] == "expense")
+    net_amount = total_income - total_expense
+
+    return render_template(
+        "projects/finance_report.html",
+        project=project,
+        records=records,
+        total_income=total_income,
+        total_expense=total_expense,
+        net_amount=net_amount,
+    )
 
 # =========================
 # App start

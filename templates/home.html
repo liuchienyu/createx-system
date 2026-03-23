@@ -42,6 +42,9 @@
         {% if user.has_permission('edit_finance') %}
         <li><a href="{{ url_for('finance_create') }}">新增財務紀錄</a></li>
         {% endif %}
+
+        <li><a href="{{ url_for('project_index') }}">專案管理</a></li>
+
     </ul>
 </div>
 {% endblock %}
