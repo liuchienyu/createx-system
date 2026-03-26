@@ -60,6 +60,7 @@
                 <th>到期日</th>
                 <th>狀態</th>
                 <th>專案</th>
+                <th>正式財務</th>
                 <th>操作</th>
             </tr>
         </thead>
@@ -75,6 +76,13 @@
                     {% if r.status == 'pending' %}待處理{% elif r.status == 'completed' %}已完成{% else %}已取消{% endif %}
                 </td>
                 <td>{{ r.project_name or '' }}</td>
+                <td>
+                    {% if r.finance_record_id %}
+                        已轉入 #{{ r.finance_record_id }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
                 <td>
                     <div style="display:flex; gap:8px; flex-wrap:wrap;">
                         {% if current_user.has_permission('edit_finance') %}
@@ -93,7 +101,7 @@
 
             {% if not records %}
             <tr>
-                <td colspan="8">目前沒有應收 / 應付資料</td>
+                <td colspan="9">目前沒有應收 / 應付資料</td>
             </tr>
             {% endif %}
         </tbody>

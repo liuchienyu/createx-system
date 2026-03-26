@@ -570,6 +570,134 @@ def load_user(user_id: str):
         permissions=permissions,
     )
 
+def create_finance_record_from_ar_ap(record_id: int) -> int | None:
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT rp.id,
+                       rp.record_type,
+                       rp.title,
+                       rp.counterparty,
+                       rp.amount,
+                       rp.due_date,
+                       rp.status,
+                       rp.note,
+                       rp.project_id,
+                       rp.finance_record_id
+                FROM receivable_payable_records rp
+                WHERE rp.id = %s
+                """,
+                (record_id,),
+            )
+            rp_record = cur.fetchone()
+
+            if not rp_record:
+                return None
+
+            # 已經轉過正式財務紀錄就不要重複建立
+            if rp_record["finance_record_id"]:
+                return rp_record["finance_record_id"]
+
+            # 只有 completed 才能轉
+            if rp_record["status"] != "completed":
+                return None
+
+            category_type = "income" if rp_record["record_type"] == "receivable" else "expense"
+
+            # 找預設分類
+            if category_type == "income":
+                fallback_category_name = "其他收入"
+            else:
+                fallback_category_name = "其他支出"
+
+            cur.execute(
+                """
+                SELECT id, name
+                FROM finance_categories
+                WHERE category_type = %s
+                  AND name = %s
+                  AND is_active = TRUE
+                LIMIT 1
+                """,
+                (category_type, fallback_category_name),
+            )
+            category = cur.fetchone()
+
+            if not category:
+                # 如果沒有預設分類，就抓同類型第一個啟用分類
+                cur.execute(
+                    """
+                    SELECT id, name
+                    FROM finance_categories
+                    WHERE category_type = %s
+                      AND is_active = TRUE
+                    ORDER BY sort_order ASC, id ASC
+                    LIMIT 1
+                    """,
+                    (category_type,),
+                )
+                category = cur.fetchone()
+
+            if not category:
+                raise RuntimeError(f"找不到可用的財務分類：{category_type}")
+
+            record_date = rp_record["due_date"]
+            if not record_date:
+                cur.execute("SELECT CURRENT_DATE AS today")
+                today_row = cur.fetchone()
+                record_date = today_row["today"]
+
+            finance_note = rp_record["note"] or ""
+            finance_note = f"[由應收應付自動轉入] {finance_note}".strip()
+
+            cur.execute(
+                """
+                INSERT INTO finance_records (
+                    record_date,
+                    category_type,
+                    category_id,
+                    category_name,
+                    item_name,
+                    amount,
+                    payment_method,
+                    counterparty,
+                    note,
+                    created_by,
+                    project_id
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+                """,
+                (
+                    record_date,
+                    category_type,
+                    category["id"],
+                    category["name"],
+                    rp_record["title"],
+                    rp_record["amount"],
+                    "應收應付轉入",
+                    rp_record["counterparty"],
+                    finance_note,
+                    int(current_user.id),
+                    rp_record["project_id"],
+                ),
+            )
+            finance_record_id = cur.fetchone()["id"]
+
+            cur.execute(
+                """
+                UPDATE receivable_payable_records
+                SET finance_record_id = %s,
+                    updated_at = NOW()
+                WHERE id = %s
+                """,
+                (finance_record_id, record_id),
+            )
+
+            conn.commit()
+            return finance_record_id
+
 
 # =========================
 # Routes
@@ -1639,16 +1767,17 @@ def ar_ap_index():
 
     query = """
         SELECT rp.id,
-               rp.record_type,
-               rp.title,
-               rp.counterparty,
-               rp.amount,
-               rp.due_date,
-               rp.status,
-               rp.note,
-               rp.project_id,
-               rp.paid_received_at,
-               p.name AS project_name
+            rp.record_type,
+            rp.title,
+            rp.counterparty,
+            rp.amount,
+            rp.due_date,
+            rp.status,
+            rp.note,
+            rp.project_id,
+            rp.finance_record_id,
+            rp.paid_received_at,
+            p.name AS project_name
         FROM receivable_payable_records rp
         LEFT JOIN projects p ON p.id = rp.project_id
     """
@@ -1862,7 +1991,7 @@ def ar_ap_mark_completed(record_id: int):
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT id, status
+                SELECT id, status, finance_record_id
                 FROM receivable_payable_records
                 WHERE id = %s
                 """,
@@ -1873,19 +2002,31 @@ def ar_ap_mark_completed(record_id: int):
             if not record:
                 abort(404)
 
-            cur.execute(
-                """
-                UPDATE receivable_payable_records
-                SET status = 'completed',
-                    paid_received_at = NOW(),
-                    updated_at = NOW()
-                WHERE id = %s
-                """,
-                (record_id,),
-            )
-            conn.commit()
+            # 先標記完成
+            if record["status"] != "completed":
+                cur.execute(
+                    """
+                    UPDATE receivable_payable_records
+                    SET status = 'completed',
+                        paid_received_at = NOW(),
+                        updated_at = NOW()
+                    WHERE id = %s
+                    """,
+                    (record_id,),
+                )
+                conn.commit()
 
-    flash("已更新為完成狀態", "success")
+    try:
+        finance_record_id = create_finance_record_from_ar_ap(record_id)
+    except Exception as e:
+        flash(f"已標記完成，但轉正式財務紀錄失敗：{str(e)}", "danger")
+        return redirect(url_for("ar_ap_index"))
+
+    if finance_record_id:
+        flash("已完成，並成功轉入正式財務紀錄", "success")
+    else:
+        flash("已更新為完成狀態", "success")
+
     return redirect(url_for("ar_ap_index"))
 
 
