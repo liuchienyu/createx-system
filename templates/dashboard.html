@@ -8,7 +8,7 @@
 <div class="dashboard-hero">
     <div>
         <h2 class="dashboard-hero-title">歡迎回來，{{ current_user.display_name }}</h2>
-        <p class="dashboard-hero-subtitle">今天是 {{ current_time.strftime('%Y-%m-%d %H:%M:%S') }}，以下是你的工作總覽。</p>
+        <p class="dashboard-hero-subtitle">今天是 <span id="live-clock"></span>，以下是你的工作總覽。</p>
     </div>
     <div class="dashboard-role-box">
         <div class="dashboard-role-label">目前角色</div>
@@ -388,6 +388,35 @@
         });
     }
     {% endif %}
+    function updateClock() {
+    const now = new Date();
+
+    const options = {
+        timeZone: "Asia/Taipei",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+    };
+
+    const formatter = new Intl.DateTimeFormat('zh-TW', options);
+    const parts = formatter.formatToParts(now);
+
+    const data = {};
+    parts.forEach(p => {
+        data[p.type] = p.value;
+    });
+
+    const formatted = `${data.year}-${data.month}-${data.day} ${data.hour}:${data.minute}:${data.second}`;
+
+    document.getElementById("live-clock").textContent = formatted;
+}
+
+updateClock();
+setInterval(updateClock, 1000);
 </script>
 {% endif %}
 {% endblock %}
