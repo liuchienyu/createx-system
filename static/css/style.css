@@ -425,3 +425,12 @@ button.btn-secondary {
         grid-template-columns: 1fr;
     }
 }
+
+.chart-card {
+    min-height: 360px;
+}
+
+.chart-card canvas {
+    width: 100% !important;
+    height: 280px !important;
+}

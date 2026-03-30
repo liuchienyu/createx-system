@@ -55,6 +55,33 @@
 </div>
 {% endif %}
 
+{% if current_user.has_permission('view_finance') %}
+<div class="dashboard-grid dashboard-grid-2">
+    <div class="card chart-card">
+        <div class="section-header">
+            <h3>最近 6 個月收支趨勢</h3>
+        </div>
+        <canvas id="monthlyTrendChart"></canvas>
+    </div>
+
+    <div class="card chart-card">
+        <div class="section-header">
+            <h3>本月支出分類占比</h3>
+        </div>
+        <canvas id="expenseCategoryChart"></canvas>
+    </div>
+</div>
+{% endif %}
+
+{% if current_user.has_permission('view_projects') %}
+<div class="card chart-card">
+    <div class="section-header">
+        <h3>專案淨利排行 Top 5</h3>
+    </div>
+    <canvas id="projectProfitChart"></canvas>
+</div>
+{% endif %}
+
 <div class="dashboard-grid dashboard-grid-2">
     {% if current_user.has_permission('view_finance') %}
     <div class="card">
@@ -288,5 +315,79 @@
         </table>
     </div>
 </div>
+{% endif %}
+
+{% if current_user.has_permission('view_finance') or current_user.has_permission('view_projects') %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    {% if current_user.has_permission('view_finance') %}
+    const monthlyLabels = {{ (monthly_chart.labels if monthly_chart is defined else [])|tojson }};
+    const monthlyIncome = {{ (monthly_chart.income if monthly_chart is defined else [])|tojson }};
+    const monthlyExpense = {{ (monthly_chart.expense if monthly_chart is defined else [])|tojson }};
+    const monthlyNet = {{ (monthly_chart.net if monthly_chart is defined else [])|tojson }};
+
+    const expenseCategoryLabels = {{ (expense_category_chart.labels if expense_category_chart is defined else [])|tojson }};
+    const expenseCategoryValues = {{ (expense_category_chart.values if expense_category_chart is defined else [])|tojson }};
+
+    const monthlyTrendCanvas = document.getElementById('monthlyTrendChart');
+    if (monthlyTrendCanvas) {
+        new Chart(monthlyTrendCanvas, {
+            type: 'bar',
+            data: {
+                labels: monthlyLabels,
+                datasets: [
+                    { label: '收入', data: monthlyIncome },
+                    { label: '支出', data: monthlyExpense },
+                    { label: '淨利', data: monthlyNet, type: 'line' }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    }
+
+    const expenseCategoryCanvas = document.getElementById('expenseCategoryChart');
+    if (expenseCategoryCanvas) {
+        new Chart(expenseCategoryCanvas, {
+            type: 'doughnut',
+            data: {
+                labels: expenseCategoryLabels,
+                datasets: [
+                    { data: expenseCategoryValues }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    }
+    {% endif %}
+
+    {% if current_user.has_permission('view_projects') %}
+    const projectProfitLabels = {{ (project_profit_chart.labels if project_profit_chart is defined else [])|tojson }};
+    const projectProfitValues = {{ (project_profit_chart.values if project_profit_chart is defined else [])|tojson }};
+
+    const projectProfitCanvas = document.getElementById('projectProfitChart');
+    if (projectProfitCanvas) {
+        new Chart(projectProfitCanvas, {
+            type: 'bar',
+            data: {
+                labels: projectProfitLabels,
+                datasets: [
+                    { label: '淨利', data: projectProfitValues }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y'
+            }
+        });
+    }
+    {% endif %}
+</script>
 {% endif %}
 {% endblock %}

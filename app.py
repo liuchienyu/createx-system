@@ -2454,6 +2454,22 @@ def dashboard():
     today = date.today()
     month_str = f"{today.year:04d}-{today.month:02d}"
     start_date, end_date = parse_month_filter(month_str)
+    monthly_chart = {
+        "labels": [],
+        "income": [],
+        "expense": [],
+        "net": [],
+    }
+
+    expense_category_chart = {
+        "labels": [],
+        "values": [],
+    }
+
+    project_profit_chart = {
+        "labels": [],
+        "values": [],
+    }
 
     finance_summary = {
         "total_income": 0,
@@ -2573,6 +2589,58 @@ def dashboard():
                 )
                 recent_finance_records = cur.fetchall()
 
+                            # 最近 6 個月收入 / 支出 / 淨利趨勢
+                cur.execute(
+                    """
+                    SELECT TO_CHAR(DATE_TRUNC('month', record_date), 'YYYY-MM') AS month_label,
+                        category_type,
+                        COALESCE(SUM(amount), 0) AS total_amount
+                    FROM finance_records
+                    WHERE record_date >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '5 months'
+                    GROUP BY DATE_TRUNC('month', record_date), category_type
+                    ORDER BY month_label ASC
+                    """
+                )
+                rows = cur.fetchall()
+
+                month_map = {}
+                for row in rows:
+                    month_label = row["month_label"]
+                    if month_label not in month_map:
+                        month_map[month_label] = {"income": 0, "expense": 0}
+
+                    if row["category_type"] == "income":
+                        month_map[month_label]["income"] = float(row["total_amount"] or 0)
+                    elif row["category_type"] == "expense":
+                        month_map[month_label]["expense"] = float(row["total_amount"] or 0)
+
+                sorted_months = sorted(month_map.keys())
+                monthly_chart["labels"] = sorted_months
+                monthly_chart["income"] = [month_map[m]["income"] for m in sorted_months]
+                monthly_chart["expense"] = [month_map[m]["expense"] for m in sorted_months]
+                monthly_chart["net"] = [
+                    month_map[m]["income"] - month_map[m]["expense"] for m in sorted_months
+                ]
+
+                # 本月支出分類占比
+                cur.execute(
+                    """
+                    SELECT category_name,
+                        COALESCE(SUM(amount), 0) AS total_amount
+                    FROM finance_records
+                    WHERE category_type = 'expense'
+                    AND record_date >= %s
+                    AND record_date < %s
+                    GROUP BY category_name
+                    ORDER BY total_amount DESC
+                    LIMIT 8
+                    """,
+                    (start_date, end_date),
+                )
+                rows = cur.fetchall()
+                expense_category_chart["labels"] = [row["category_name"] for row in rows]
+                expense_category_chart["values"] = [float(row["total_amount"] or 0) for row in rows]
+
     # 專案資料
     if current_user.has_permission("view_projects"):
         with get_db() as conn:
@@ -2610,8 +2678,29 @@ def dashboard():
                 )
                 recent_projects = cur.fetchall()
 
+                            # 專案淨利排行 Top 5
+                cur.execute(
+                    """
+                    SELECT p.name,
+                        COALESCE(SUM(CASE WHEN fr.category_type = 'income' THEN fr.amount ELSE 0 END), 0)
+                        -
+                        COALESCE(SUM(CASE WHEN fr.category_type = 'expense' THEN fr.amount ELSE 0 END), 0)
+                        AS net_amount
+                    FROM projects p
+                    LEFT JOIN finance_records fr ON fr.project_id = p.id
+                    GROUP BY p.id
+                    ORDER BY net_amount DESC
+                    LIMIT 5
+                    """
+                )
+                rows = cur.fetchall()
+                project_profit_chart["labels"] = [row["name"] for row in rows]
+                project_profit_chart["values"] = [float(row["net_amount"] or 0) for row in rows]
+
         for p in recent_projects:
             p["net_amount"] = float(p["total_income"]) - float(p["total_expense"])
+
+            
 
     # 系統管理資料
     if current_user.has_permission("admin_users"):
@@ -2636,6 +2725,9 @@ def dashboard():
         recent_projects=recent_projects,
         overdue_receivables=overdue_receivables,
         overdue_payables=overdue_payables,
+        monthly_chart=monthly_chart,
+        expense_category_chart=expense_category_chart,
+        project_profit_chart=project_profit_chart,
     )
 
 
