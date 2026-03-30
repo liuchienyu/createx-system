@@ -2,12 +2,12 @@
 
 {% block title %}專案管理 - Createx{% endblock %}
 {% block page_title %}專案管理{% endblock %}
-{% block page_subtitle %}管理活動與查看活動損益{% endblock %}
+{% block page_subtitle %}管理活動與查看專案損益{% endblock %}
 
 {% block content %}
 <div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h3 style="margin: 0;">專案列表</h3>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h3 style="margin:0;">專案列表</h3>
         <a class="btn" href="{{ url_for('project_create') }}">新增專案</a>
     </div>
 
@@ -16,8 +16,10 @@
             <tr>
                 <th>ID</th>
                 <th>專案名稱</th>
-                <th>說明</th>
                 <th>啟用狀態</th>
+                <th>收入</th>
+                <th>支出</th>
+                <th>淨利</th>
                 <th>操作</th>
             </tr>
         </thead>
@@ -26,22 +28,29 @@
             <tr>
                 <td>{{ p.id }}</td>
                 <td>{{ p.name }}</td>
-                <td>{{ p.description or '' }}</td>
                 <td>{{ '啟用中' if p.is_active else '停用' }}</td>
+                <td>NT$ {{ "{:,.0f}".format(p.total_income) }}</td>
+                <td>NT$ {{ "{:,.0f}".format(p.total_expense) }}</td>
+                <td>NT$ {{ "{:,.0f}".format(p.net_amount) }}</td>
                 <td>
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <a class="btn" href="{{ url_for('project_finance_report', project_id=p.id) }}">查看損益</a>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <a class="btn" href="{{ url_for('project_detail', project_id=p.id) }}">明細</a>
+                        <a class="btn" href="{{ url_for('project_finance_report', project_id=p.id) }}">損益</a>
                         <a class="btn" href="{{ url_for('project_edit', project_id=p.id) }}">編輯</a>
 
-                        <form method="post" action="{{ url_for('project_toggle_active', project_id=p.id) }}" style="display: inline;">
-                            <button type="submit">
-                                {{ '停用' if p.is_active else '啟用' }}
-                            </button>
+                        <form method="post" action="{{ url_for('project_toggle_active', project_id=p.id) }}" style="display:inline;">
+                            <button type="submit">{{ '停用' if p.is_active else '啟用' }}</button>
                         </form>
                     </div>
                 </td>
             </tr>
             {% endfor %}
+
+            {% if not projects %}
+            <tr>
+                <td colspan="7">目前沒有專案資料</td>
+            </tr>
+            {% endif %}
         </tbody>
     </table>
 </div>

@@ -2197,12 +2197,24 @@ def project_index():
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT id, name, description, start_date, end_date, is_active
-                FROM projects
-                ORDER BY id DESC
+                SELECT p.id,
+                       p.name,
+                       p.description,
+                       p.start_date,
+                       p.end_date,
+                       p.is_active,
+                       COALESCE(SUM(CASE WHEN fr.category_type = 'income' THEN fr.amount ELSE 0 END), 0) AS total_income,
+                       COALESCE(SUM(CASE WHEN fr.category_type = 'expense' THEN fr.amount ELSE 0 END), 0) AS total_expense
+                FROM projects p
+                LEFT JOIN finance_records fr ON fr.project_id = p.id
+                GROUP BY p.id
+                ORDER BY p.id DESC
                 """
             )
             projects = cur.fetchall()
+
+    for p in projects:
+        p["net_amount"] = float(p["total_income"]) - float(p["total_expense"])
 
     return render_template("projects/index.html", projects=projects)
 
@@ -2330,6 +2342,60 @@ def project_toggle_active(project_id: int):
 
     flash("專案狀態已更新", "success")
     return redirect(url_for("project_index"))
+
+@app.route("/projects/<int:project_id>")
+@login_required
+def project_detail(project_id: int):
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT p.id,
+                       p.name,
+                       p.description,
+                       p.start_date,
+                       p.end_date,
+                       p.is_active,
+                       COALESCE(SUM(CASE WHEN fr.category_type = 'income' THEN fr.amount ELSE 0 END), 0) AS total_income,
+                       COALESCE(SUM(CASE WHEN fr.category_type = 'expense' THEN fr.amount ELSE 0 END), 0) AS total_expense
+                FROM projects p
+                LEFT JOIN finance_records fr ON fr.project_id = p.id
+                WHERE p.id = %s
+                GROUP BY p.id
+                """,
+                (project_id,),
+            )
+            project = cur.fetchone()
+
+            if not project:
+                abort(404)
+
+            cur.execute(
+                """
+                SELECT id,
+                       record_date,
+                       category_type,
+                       category_name,
+                       item_name,
+                       amount,
+                       payment_method,
+                       counterparty
+                FROM finance_records
+                WHERE project_id = %s
+                ORDER BY record_date DESC, id DESC
+                LIMIT 10
+                """,
+                (project_id,),
+            )
+            recent_records = cur.fetchall()
+
+    project["net_amount"] = float(project["total_income"]) - float(project["total_expense"])
+
+    return render_template(
+        "projects/detail.html",
+        project=project,
+        recent_records=recent_records,
+    )
 
 @app.route("/projects/<int:project_id>/finance")
 @login_required

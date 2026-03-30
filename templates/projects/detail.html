@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}專案明細 - Createx{% endblock %}
+{% block page_title %}專案明細{% endblock %}
+{% block page_subtitle %}查看專案資訊與近期財務紀錄{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 style="margin-top:0;">{{ project.name }}</h2>
+    <p>{{ project.description or '' }}</p>
+    <p>開始日期：{{ project.start_date or '' }}</p>
+    <p>結束日期：{{ project.end_date or '' }}</p>
+    <p>狀態：{{ '啟用中' if project.is_active else '停用' }}</p>
+</div>
+
+<div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; margin-bottom:20px;">
+    <div class="card">
+        <h3 style="margin-top:0;">總收入</h3>
+        <p style="font-size:24px; font-weight:bold;">NT$ {{ "{:,.0f}".format(project.total_income) }}</p>
+    </div>
+    <div class="card">
+        <h3 style="margin-top:0;">總支出</h3>
+        <p style="font-size:24px; font-weight:bold;">NT$ {{ "{:,.0f}".format(project.total_expense) }}</p>
+    </div>
+    <div class="card">
+        <h3 style="margin-top:0;">淨利</h3>
+        <p style="font-size:24px; font-weight:bold;">NT$ {{ "{:,.0f}".format(project.net_amount) }}</p>
+    </div>
+</div>
+
+<div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="margin-top:0;">最近 10 筆財務紀錄</h3>
+        <a class="btn" href="{{ url_for('project_finance_report', project_id=project.id) }}">查看完整損益表</a>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>日期</th>
+                <th>收支</th>
+                <th>分類</th>
+                <th>項目</th>
+                <th>金額</th>
+                <th>對象</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in recent_records %}
+            <tr>
+                <td>{{ r.record_date }}</td>
+                <td>{{ '收入' if r.category_type == 'income' else '支出' }}</td>
+                <td>{{ r.category_name }}</td>
+                <td>{{ r.item_name }}</td>
+                <td>NT$ {{ "{:,.0f}".format(r.amount) }}</td>
+                <td>{{ r.counterparty or '' }}</td>
+            </tr>
+            {% endfor %}
+
+            {% if not recent_records %}
+            <tr>
+                <td colspan="6">目前沒有財務紀錄</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
