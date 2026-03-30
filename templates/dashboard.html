@@ -321,13 +321,13 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     {% if current_user.has_permission('view_finance') %}
-    const monthlyLabels = {{ (monthly_chart.labels if monthly_chart is defined else [])|tojson }};
-    const monthlyIncome = {{ (monthly_chart.income if monthly_chart is defined else [])|tojson }};
-    const monthlyExpense = {{ (monthly_chart.expense if monthly_chart is defined else [])|tojson }};
-    const monthlyNet = {{ (monthly_chart.net if monthly_chart is defined else [])|tojson }};
+    const monthlyLabels = {{ (monthly_chart["labels"] if monthly_chart is defined else [])|tojson }};
+    const monthlyIncome = {{ (monthly_chart["income"] if monthly_chart is defined else [])|tojson }};
+    const monthlyExpense = {{ (monthly_chart["expense"] if monthly_chart is defined else [])|tojson }};
+    const monthlyNet = {{ (monthly_chart["net"] if monthly_chart is defined else [])|tojson }};
 
-    const expenseCategoryLabels = {{ (expense_category_chart.labels if expense_category_chart is defined else [])|tojson }};
-    const expenseCategoryValues = {{ (expense_category_chart.values if expense_category_chart is defined else [])|tojson }};
+    const expenseCategoryLabels = {{ (expense_category_chart["labels"] if expense_category_chart is defined else [])|tojson }};
+    const expenseCategoryValues = {{ (expense_category_chart["values"] if expense_category_chart is defined else [])|tojson }};
 
     const monthlyTrendCanvas = document.getElementById('monthlyTrendChart');
     if (monthlyTrendCanvas) {
@@ -367,8 +367,8 @@
     {% endif %}
 
     {% if current_user.has_permission('view_projects') %}
-    const projectProfitLabels = {{ (project_profit_chart.labels if project_profit_chart is defined else [])|tojson }};
-    const projectProfitValues = {{ (project_profit_chart.values if project_profit_chart is defined else [])|tojson }};
+    const projectProfitLabels = {{ (project_profit_chart["labels"] if project_profit_chart is defined else [])|tojson }};
+    const projectProfitValues = {{ (project_profit_chart["values"] if project_profit_chart is defined else [])|tojson }};
 
     const projectProfitCanvas = document.getElementById('projectProfitChart');
     if (projectProfitCanvas) {
@@ -389,5 +389,6 @@
     }
     {% endif %}
 </script>
+{% endif %}
 {% endif %}
 {% endblock %}
