@@ -17,7 +17,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from psycopg.rows import dict_row
 import psycopg
 
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 # =========================
 # Config
@@ -752,7 +752,7 @@ def login():
         )
         login_user(user)
         flash("登入成功", "success")
-        return redirect(url_for("home"))
+        return redirect(url_for("dashboard_owner"))
 
     return render_template("login.html")
 
@@ -2446,6 +2446,186 @@ def project_finance_report(project_id: int):
         total_income=total_income,
         total_expense=total_expense,
         net_amount=net_amount,
+    )
+
+
+@app.route("/dashboard-owner")
+@login_required
+@permission_required("view_finance")
+def dashboard_owner():
+    today = date.today()
+    month_str = f"{today.year:04d}-{today.month:02d}"
+    start_date, end_date = parse_month_filter(month_str)
+
+    finance_summary = {
+        "total_income": 0,
+        "total_expense": 0,
+        "net_amount": 0,
+    }
+
+    ar_ap_summary = {
+        "total_receivable": 0,
+        "total_payable": 0,
+        "overdue_receivable_count": 0,
+        "overdue_payable_count": 0,
+    }
+
+    project_summary = {
+        "active_project_count": 0,
+    }
+
+    recent_finance_records = []
+    recent_projects = []
+    overdue_receivables = []
+    overdue_payables = []
+    finance_record_count_this_month = 0
+
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            # 本月收入 / 支出
+            cur.execute(
+                """
+                SELECT category_type, COALESCE(SUM(amount), 0) AS total_amount
+                FROM finance_records
+                WHERE record_date >= %s AND record_date < %s
+                GROUP BY category_type
+                """,
+                (start_date, end_date),
+            )
+            rows = cur.fetchall()
+            for row in rows:
+                if row["category_type"] == "income":
+                    finance_summary["total_income"] = float(row["total_amount"] or 0)
+                elif row["category_type"] == "expense":
+                    finance_summary["total_expense"] = float(row["total_amount"] or 0)
+
+            finance_summary["net_amount"] = (
+                finance_summary["total_income"] - finance_summary["total_expense"]
+            )
+
+            # 本月財務紀錄筆數
+            cur.execute(
+                """
+                SELECT COUNT(*) AS cnt
+                FROM finance_records
+                WHERE record_date >= %s AND record_date < %s
+                """,
+                (start_date, end_date),
+            )
+            finance_record_count_this_month = cur.fetchone()["cnt"]
+
+            # 待收 / 待付總額
+            cur.execute(
+                """
+                SELECT record_type, COALESCE(SUM(amount), 0) AS total_amount
+                FROM receivable_payable_records
+                WHERE status = 'pending'
+                GROUP BY record_type
+                """
+            )
+            rows = cur.fetchall()
+            for row in rows:
+                if row["record_type"] == "receivable":
+                    ar_ap_summary["total_receivable"] = float(row["total_amount"] or 0)
+                elif row["record_type"] == "payable":
+                    ar_ap_summary["total_payable"] = float(row["total_amount"] or 0)
+
+            # 逾期應收
+            cur.execute(
+                """
+                SELECT rp.id, rp.title, rp.counterparty, rp.amount, rp.due_date, p.name AS project_name
+                FROM receivable_payable_records rp
+                LEFT JOIN projects p ON p.id = rp.project_id
+                WHERE rp.record_type = 'receivable'
+                  AND rp.status = 'pending'
+                  AND rp.due_date IS NOT NULL
+                  AND rp.due_date < %s
+                ORDER BY rp.due_date ASC
+                LIMIT 5
+                """,
+                (today,),
+            )
+            overdue_receivables = cur.fetchall()
+            ar_ap_summary["overdue_receivable_count"] = len(overdue_receivables)
+
+            # 逾期應付
+            cur.execute(
+                """
+                SELECT rp.id, rp.title, rp.counterparty, rp.amount, rp.due_date, p.name AS project_name
+                FROM receivable_payable_records rp
+                LEFT JOIN projects p ON p.id = rp.project_id
+                WHERE rp.record_type = 'payable'
+                  AND rp.status = 'pending'
+                  AND rp.due_date IS NOT NULL
+                  AND rp.due_date < %s
+                ORDER BY rp.due_date ASC
+                LIMIT 5
+                """,
+                (today,),
+            )
+            overdue_payables = cur.fetchall()
+            ar_ap_summary["overdue_payable_count"] = len(overdue_payables)
+
+            # 啟用中專案數
+            cur.execute(
+                """
+                SELECT COUNT(*) AS cnt
+                FROM projects
+                WHERE is_active = TRUE
+                """
+            )
+            project_summary["active_project_count"] = cur.fetchone()["cnt"]
+
+            # 最近 5 筆財務紀錄
+            cur.execute(
+                """
+                SELECT fr.id,
+                       fr.record_date,
+                       fr.category_type,
+                       fr.category_name,
+                       fr.item_name,
+                       fr.amount,
+                       p.name AS project_name
+                FROM finance_records fr
+                LEFT JOIN projects p ON p.id = fr.project_id
+                ORDER BY fr.record_date DESC, fr.id DESC
+                LIMIT 5
+                """
+            )
+            recent_finance_records = cur.fetchall()
+
+            # 最近 5 個專案（含損益）
+            cur.execute(
+                """
+                SELECT p.id,
+                       p.name,
+                       p.is_active,
+                       COALESCE(SUM(CASE WHEN fr.category_type = 'income' THEN fr.amount ELSE 0 END), 0) AS total_income,
+                       COALESCE(SUM(CASE WHEN fr.category_type = 'expense' THEN fr.amount ELSE 0 END), 0) AS total_expense
+                FROM projects p
+                LEFT JOIN finance_records fr ON fr.project_id = p.id
+                GROUP BY p.id
+                ORDER BY p.id DESC
+                LIMIT 5
+                """
+            )
+            recent_projects = cur.fetchall()
+
+    for p in recent_projects:
+        p["net_amount"] = float(p["total_income"]) - float(p["total_expense"])
+
+    return render_template(
+        "dashboard_owner.html",
+        today=today,
+        month_str=month_str,
+        finance_summary=finance_summary,
+        ar_ap_summary=ar_ap_summary,
+        project_summary=project_summary,
+        finance_record_count_this_month=finance_record_count_this_month,
+        overdue_receivables=overdue_receivables,
+        overdue_payables=overdue_payables,
+        recent_finance_records=recent_finance_records,
+        recent_projects=recent_projects,
     )
 
 # =========================
