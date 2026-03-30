@@ -16,7 +16,7 @@
 
             {% if current_user.is_authenticated %}
             <nav class="nav-menu">
-                <a href="{{ url_for('home') }}">首頁</a>
+                <a href="{{ url_for('dashboard') }}">首頁</a>
                 <a href="{{ url_for('my_permissions') }}">我的權限</a>
 
                 {% if current_user.has_permission('admin_users') %}

@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Createx{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block page_subtitle %}依據你的權限顯示可用模組與經營資訊{% endblock %}
+
+{% block content %}
+<div class="dashboard-hero">
+    <div>
+        <h2 class="dashboard-hero-title">歡迎回來，{{ current_user.display_name }}</h2>
+        <p class="dashboard-hero-subtitle">今天是 {{ today }}，以下是你的工作總覽。</p>
+    </div>
+    <div class="dashboard-role-box">
+        <div class="dashboard-role-label">目前角色</div>
+        <div class="dashboard-role-value">
+            {% for role in current_user.roles %}
+                <span class="status-chip status-chip-info">{{ role }}</span>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% if current_user.has_permission('view_finance') %}
+<div class="dashboard-section">
+    <div class="section-header">
+        <h3>財務總覽</h3>
+    </div>
+
+    <div class="dashboard-grid dashboard-grid-5">
+        <div class="metric-card metric-card-income">
+            <div class="metric-label">本月總收入</div>
+            <div class="metric-value">NT$ {{ "{:,.0f}".format(finance_summary.total_income) }}</div>
+        </div>
+
+        <div class="metric-card metric-card-expense">
+            <div class="metric-label">本月總支出</div>
+            <div class="metric-value">NT$ {{ "{:,.0f}".format(finance_summary.total_expense) }}</div>
+        </div>
+
+        <div class="metric-card {% if finance_summary.net_amount >= 0 %}metric-card-net-positive{% else %}metric-card-net-negative{% endif %}">
+            <div class="metric-label">本月淨利</div>
+            <div class="metric-value">NT$ {{ "{:,.0f}".format(finance_summary.net_amount) }}</div>
+        </div>
+
+        <div class="metric-card metric-card-receivable">
+            <div class="metric-label">待收款</div>
+            <div class="metric-value">NT$ {{ "{:,.0f}".format(finance_summary.total_receivable) }}</div>
+        </div>
+
+        <div class="metric-card metric-card-payable">
+            <div class="metric-label">待付款</div>
+            <div class="metric-value">NT$ {{ "{:,.0f}".format(finance_summary.total_payable) }}</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="dashboard-grid dashboard-grid-2">
+    {% if current_user.has_permission('view_finance') %}
+    <div class="card">
+        <div class="section-header">
+            <h3>財務提醒</h3>
+        </div>
+
+        <div class="status-list">
+            <div class="status-row">
+                <span>逾期應收</span>
+                <span class="status-chip {% if finance_summary.overdue_receivable_count > 0 %}status-chip-danger{% else %}status-chip-success{% endif %}">
+                    {{ finance_summary.overdue_receivable_count }} 筆
+                </span>
+            </div>
+            <div class="status-row">
+                <span>逾期應付</span>
+                <span class="status-chip {% if finance_summary.overdue_payable_count > 0 %}status-chip-danger{% else %}status-chip-success{% endif %}">
+                    {{ finance_summary.overdue_payable_count }} 筆
+                </span>
+            </div>
+        </div>
+
+        <div class="quick-actions">
+            {% if current_user.has_permission('edit_finance') %}
+            <a class="btn" href="{{ url_for('finance_create') }}">新增財務紀錄</a>
+            <a class="btn" href="{{ url_for('ar_ap_create') }}">新增應收應付</a>
+            {% endif %}
+            <a class="btn" href="{{ url_for('finance_dashboard') }}">財務儀表板</a>
+            <a class="btn" href="{{ url_for('ar_ap_index') }}">應收應付管理</a>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if current_user.has_permission('view_projects') %}
+    <div class="card">
+        <div class="section-header">
+            <h3>專案總覽</h3>
+        </div>
+
+        <div class="status-list">
+            <div class="status-row">
+                <span>專案總數</span>
+                <span class="status-chip status-chip-info">{{ project_summary.project_count }}</span>
+            </div>
+            <div class="status-row">
+                <span>進行中專案</span>
+                <span class="status-chip {% if project_summary.active_project_count > 0 %}status-chip-success{% else %}status-chip-neutral{% endif %}">
+                    {{ project_summary.active_project_count }}
+                </span>
+            </div>
+        </div>
+
+        <div class="quick-actions">
+            <a class="btn" href="{{ url_for('project_index') }}">專案管理</a>
+            <a class="btn" href="{{ url_for('project_create') }}">新增專案</a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% if current_user.has_permission('admin_users') %}
+<div class="dashboard-section">
+    <div class="section-header">
+        <h3>系統管理</h3>
+    </div>
+
+    <div class="dashboard-grid dashboard-grid-3">
+        <div class="metric-card metric-card-neutral">
+            <div class="metric-label">使用者總數</div>
+            <div class="metric-value">{{ admin_summary.user_count }}</div>
+        </div>
+        <div class="metric-card metric-card-neutral">
+            <div class="metric-label">啟用帳號</div>
+            <div class="metric-value">{{ admin_summary.active_user_count }}</div>
+        </div>
+        <div class="metric-card metric-card-neutral">
+            <div class="metric-label">角色數量</div>
+            <div class="metric-value">{{ admin_summary.role_count }}</div>
+        </div>
+    </div>
+
+    <div class="quick-actions" style="margin-top:16px;">
+        <a class="btn" href="{{ url_for('admin_users') }}">使用者管理</a>
+        <a class="btn" href="{{ url_for('admin_roles') }}">角色管理</a>
+        <a class="btn" href="{{ url_for('create_user') }}">新增使用者</a>
+    </div>
+</div>
+{% endif %}
+
+<div class="dashboard-grid dashboard-grid-2">
+    {% if current_user.has_permission('view_finance') %}
+    <div class="card">
+        <div class="section-header">
+            <h3>最近財務紀錄</h3>
+            <a class="btn" href="{{ url_for('finance_index') }}">查看全部</a>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>日期</th>
+                    <th>類型</th>
+                    <th>項目</th>
+                    <th>金額</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in recent_finance_records %}
+                <tr>
+                    <td>{{ r.record_date }}</td>
+                    <td>
+                        <span class="status-chip {% if r.category_type == 'income' %}status-chip-success{% else %}status-chip-danger{% endif %}">
+                            {{ '收入' if r.category_type == 'income' else '支出' }}
+                        </span>
+                    </td>
+                    <td>{{ r.item_name }}</td>
+                    <td>NT$ {{ "{:,.0f}".format(r.amount) }}</td>
+                </tr>
+                {% endfor %}
+                {% if not recent_finance_records %}
+                <tr>
+                    <td colspan="4">目前沒有財務紀錄</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if current_user.has_permission('view_projects') %}
+    <div class="card">
+        <div class="section-header">
+            <h3>最近專案</h3>
+            <a class="btn" href="{{ url_for('project_index') }}">查看全部</a>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>專案</th>
+                    <th>狀態</th>
+                    <th>淨利</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in recent_projects %}
+                <tr>
+                    <td>{{ p.name }}</td>
+                    <td>
+                        <span class="status-chip {% if p.is_active %}status-chip-success{% else %}status-chip-neutral{% endif %}">
+                            {{ '啟用中' if p.is_active else '停用' }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="{% if p.net_amount >= 0 %}text-positive{% else %}text-negative{% endif %}">
+                            NT$ {{ "{:,.0f}".format(p.net_amount) }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not recent_projects %}
+                <tr>
+                    <td colspan="3">目前沒有專案資料</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+{% if current_user.has_permission('view_finance') %}
+<div class="dashboard-grid dashboard-grid-2">
+    <div class="card">
+        <div class="section-header">
+            <h3>逾期應收</h3>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>標題</th>
+                    <th>到期日</th>
+                    <th>金額</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in overdue_receivables %}
+                <tr>
+                    <td>{{ r.title }}</td>
+                    <td><span class="text-danger">{{ r.due_date }}</span></td>
+                    <td>NT$ {{ "{:,.0f}".format(r.amount) }}</td>
+                </tr>
+                {% endfor %}
+                {% if not overdue_receivables %}
+                <tr>
+                    <td colspan="3">目前沒有逾期應收</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <div class="section-header">
+            <h3>逾期應付</h3>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>標題</th>
+                    <th>到期日</th>
+                    <th>金額</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in overdue_payables %}
+                <tr>
+                    <td>{{ r.title }}</td>
+                    <td><span class="text-danger">{{ r.due_date }}</span></td>
+                    <td>NT$ {{ "{:,.0f}".format(r.amount) }}</td>
+                </tr>
+                {% endfor %}
+                {% if not overdue_payables %}
+                <tr>
+                    <td colspan="3">目前沒有逾期應付</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
