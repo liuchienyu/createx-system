@@ -16,8 +16,8 @@ from flask_login import (
 from werkzeug.security import generate_password_hash, check_password_hash
 from psycopg.rows import dict_row
 import psycopg
-
 from datetime import datetime, date, timedelta
+from zoneinfo import ZoneInfo
 
 # =========================
 # Config
@@ -32,6 +32,14 @@ if not DATABASE_URL:
 login_manager = LoginManager()
 login_manager.login_view = "login"
 login_manager.init_app(app)
+
+APP_TIMEZONE = ZoneInfo("Asia/Taipei")
+
+def now_tw() -> datetime:
+    return datetime.now(APP_TIMEZONE)
+
+def today_tw() -> date:
+    return now_tw().date()
 
 
 # =========================
@@ -1421,7 +1429,7 @@ def finance_index():
 @login_required
 @permission_required("view_finance")
 def finance_dashboard():
-    today = date.today()
+    today = today_tw()
     month_str = f"{today.year:04d}-{today.month:02d}"
     start_date, end_date = parse_month_filter(month_str)
 
@@ -2451,7 +2459,7 @@ def project_finance_report(project_id: int):
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    today = date.today()
+    today = today_tw()
     month_str = f"{today.year:04d}-{today.month:02d}"
     start_date, end_date = parse_month_filter(month_str)
     monthly_chart = {
@@ -2716,26 +2724,27 @@ def dashboard():
                 admin_summary["role_count"] = cur.fetchone()["cnt"]
 
     return render_template(
-        "dashboard.html",
-        today=today,
-        finance_summary=finance_summary,
-        project_summary=project_summary,
-        admin_summary=admin_summary,
-        recent_finance_records=recent_finance_records,
-        recent_projects=recent_projects,
-        overdue_receivables=overdue_receivables,
-        overdue_payables=overdue_payables,
-        monthly_chart=monthly_chart,
-        expense_category_chart=expense_category_chart,
-        project_profit_chart=project_profit_chart,
-    )
+    "dashboard.html",
+    today=today,
+    current_time=now_tw(),
+    finance_summary=finance_summary,
+    project_summary=project_summary,
+    admin_summary=admin_summary,
+    recent_finance_records=recent_finance_records,
+    recent_projects=recent_projects,
+    overdue_receivables=overdue_receivables,
+    overdue_payables=overdue_payables,
+    monthly_chart=monthly_chart,
+    expense_category_chart=expense_category_chart,
+    project_profit_chart=project_profit_chart,
+)
 
 
 @app.route("/dashboard-owner")
 @login_required
 @permission_required("view_finance")
 def dashboard_owner():
-    today = date.today()
+    today = today_tw()
     month_str = f"{today.year:04d}-{today.month:02d}"
     start_date, end_date = parse_month_filter(month_str)
 

@@ -8,7 +8,7 @@
 <div class="dashboard-hero">
     <div>
         <h2 class="dashboard-hero-title">歡迎回來，{{ current_user.display_name }}</h2>
-        <p class="dashboard-hero-subtitle">今天是 {{ today }}，以下是你的工作總覽。</p>
+        <p class="dashboard-hero-subtitle">今天是 {{ current_time.strftime('%Y-%m-%d %H:%M:%S') }}，以下是你的工作總覽。</p>
     </div>
     <div class="dashboard-role-box">
         <div class="dashboard-role-label">目前角色</div>
