@@ -63,6 +63,8 @@ PERMS = [
     ("edit_departments", "可編輯部門管理"),
     ("view_job_titles", "可查看職稱管理"),
     ("edit_job_titles", "可編輯職稱管理"),
+    ("view_employee_movements", "可查看任用異動紀錄"),
+    ("edit_employee_movements", "可編輯任用異動紀錄"),  
     ("view_tasks", "可查看 Tasks"),
     ("edit_tasks", "可編輯 Tasks"),
     ("view_approvals", "可查看公文簽核"),
@@ -101,6 +103,8 @@ DEFAULT_ROLES = {
             "edit_departments",
             "view_job_titles",
             "edit_job_titles",
+            "view_employee_movements",
+            "edit_employee_movements",
         ],
     },
     "Staff": {
@@ -117,6 +121,7 @@ DEFAULT_ROLES = {
             "view_hr",
             "view_departments",
             "view_job_titles",
+            "view_employee_movements",
         ],
     },
     "Viewer": {
@@ -254,6 +259,28 @@ def init_db() -> None:
                 );
                 """
             )
+
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS employee_movements (
+                    id SERIAL PRIMARY KEY,
+                    employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+                    movement_type VARCHAR(30) NOT NULL,
+                    effective_date DATE NOT NULL,
+                    from_department_id INTEGER REFERENCES departments(id) ON DELETE SET NULL,
+                    to_department_id INTEGER REFERENCES departments(id) ON DELETE SET NULL,
+                    from_job_title_id INTEGER REFERENCES job_titles(id) ON DELETE SET NULL,
+                    to_job_title_id INTEGER REFERENCES job_titles(id) ON DELETE SET NULL,
+                    from_status VARCHAR(30),
+                    to_status VARCHAR(30),
+                    remark TEXT,
+                    created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+                );
+                """
+            )
+
+
             cur.execute(
                 """
                 ALTER TABLE employees
@@ -663,6 +690,20 @@ def get_job_titles(only_active: bool = True):
         with conn.cursor() as cur:
             cur.execute(query, params)
             return cur.fetchall()
+        
+def get_employee_movement_types():
+    return [
+        ("hire", "到職"),
+        ("probation_pass", "轉正"),
+        ("department_transfer", "調部門"),
+        ("promotion", "升遷"),
+        ("demotion", "降職"),
+        ("leave", "留停"),
+        ("reinstate", "復職"),
+        ("termination", "離職"),
+        ("other", "其他"),
+    ]
+
 
 def get_active_employees_basic():
     with get_db() as conn:
@@ -3444,8 +3485,38 @@ def employee_detail(employee_id: int):
 
             if not employee:
                 abort(404)
+                cur.execute(
+                """
+                SELECT em.id,
+                       em.movement_type,
+                       em.effective_date,
+                       em.from_status,
+                       em.to_status,
+                       em.remark,
+                       fd.name AS from_department_name,
+                       td.name AS to_department_name,
+                       fjt.name AS from_job_title_name,
+                       tjt.name AS to_job_title_name,
+                       u.display_name AS created_by_name
+                FROM employee_movements em
+                LEFT JOIN departments fd ON fd.id = em.from_department_id
+                LEFT JOIN departments td ON td.id = em.to_department_id
+                LEFT JOIN job_titles fjt ON fjt.id = em.from_job_title_id
+                LEFT JOIN job_titles tjt ON tjt.id = em.to_job_title_id
+                LEFT JOIN users u ON u.id = em.created_by
+                WHERE em.employee_id = %s
+                ORDER BY em.effective_date DESC, em.id DESC
+                """,
+                (employee_id,),
+            )
+            movements = cur.fetchall()
 
-    return render_template("hr/employee_detail.html", employee=employee)
+    return render_template(
+    "hr/employee_detail.html",
+    employee=employee,
+    movements=movements,
+    movement_type_map=dict(get_employee_movement_types()),
+)
 
 @app.route("/hr/departments")
 @login_required
@@ -3694,6 +3765,214 @@ def job_title_edit(title_id: int):
                 return redirect(url_for("job_titles_index"))
 
     return render_template("hr/job_title_edit.html", job_title=job_title)
+
+
+@app.route("/hr/movements")
+@login_required
+@permission_required("view_employee_movements")
+def employee_movements_index():
+    movement_type = (request.args.get("movement_type") or "").strip()
+
+    query = """
+        SELECT em.id,
+               em.employee_id,
+               em.movement_type,
+               em.effective_date,
+               em.from_status,
+               em.to_status,
+               em.remark,
+               e.name AS employee_name,
+               e.employee_no,
+               fd.name AS from_department_name,
+               td.name AS to_department_name,
+               fjt.name AS from_job_title_name,
+               tjt.name AS to_job_title_name,
+               u.display_name AS created_by_name
+        FROM employee_movements em
+        JOIN employees e ON e.id = em.employee_id
+        LEFT JOIN departments fd ON fd.id = em.from_department_id
+        LEFT JOIN departments td ON td.id = em.to_department_id
+        LEFT JOIN job_titles fjt ON fjt.id = em.from_job_title_id
+        LEFT JOIN job_titles tjt ON tjt.id = em.to_job_title_id
+        LEFT JOIN users u ON u.id = em.created_by
+    """
+    params = []
+
+    if movement_type:
+        query += " WHERE em.movement_type = %s"
+        params.append(movement_type)
+
+    query += " ORDER BY em.effective_date DESC, em.id DESC"
+
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, params)
+            movements = cur.fetchall()
+
+    return render_template(
+        "hr/employee_movements_index.html",
+        movements=movements,
+        movement_type=movement_type,
+        movement_types=get_employee_movement_types(),
+    )
+
+@app.route("/hr/movements/create", methods=["GET", "POST"])
+@login_required
+@permission_required("edit_employee_movements")
+def employee_movement_create():
+    employee_id = (request.args.get("employee_id") or "").strip()
+
+    selected_employee = None
+    if employee_id:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT *
+                    FROM employees
+                    WHERE id = %s
+                    """,
+                    (int(employee_id),),
+                )
+                selected_employee = cur.fetchone()
+
+    if request.method == "POST":
+        employee_id = (request.form.get("employee_id") or "").strip()
+        movement_type = (request.form.get("movement_type") or "").strip()
+        effective_date = (request.form.get("effective_date") or "").strip()
+        to_department_id = (request.form.get("to_department_id") or "").strip()
+        to_job_title_id = (request.form.get("to_job_title_id") or "").strip()
+        to_status = (request.form.get("to_status") or "").strip()
+        remark = (request.form.get("remark") or "").strip()
+
+        if not employee_id:
+            flash("請選擇員工", "danger")
+            return redirect(url_for("employee_movement_create"))
+
+        if not movement_type:
+            flash("請選擇異動類型", "danger")
+            return redirect(url_for("employee_movement_create"))
+
+        if not effective_date:
+            flash("請輸入生效日期", "danger")
+            return redirect(url_for("employee_movement_create"))
+
+        employee_id_value = int(employee_id)
+        to_department_id_value = int(to_department_id) if to_department_id else None
+        to_job_title_id_value = int(to_job_title_id) if to_job_title_id else None
+
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT *
+                    FROM employees
+                    WHERE id = %s
+                    """,
+                    (employee_id_value,),
+                )
+                employee = cur.fetchone()
+
+                if not employee:
+                    flash("找不到員工資料", "danger")
+                    return redirect(url_for("employee_movement_create"))
+
+                from_department_id = employee["department_id"]
+                from_job_title_id = employee["job_title_id"]
+                from_status = employee["status"]
+
+                # 沒有填新值就沿用舊值
+                final_department_id = to_department_id_value if to_department_id else from_department_id
+                final_job_title_id = to_job_title_id_value if to_job_title_id else from_job_title_id
+                final_status = to_status if to_status else from_status
+
+                cur.execute(
+                    """
+                    INSERT INTO employee_movements (
+                        employee_id,
+                        movement_type,
+                        effective_date,
+                        from_department_id,
+                        to_department_id,
+                        from_job_title_id,
+                        to_job_title_id,
+                        from_status,
+                        to_status,
+                        remark,
+                        created_by
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        employee_id_value,
+                        movement_type,
+                        effective_date,
+                        from_department_id,
+                        final_department_id,
+                        from_job_title_id,
+                        final_job_title_id,
+                        from_status,
+                        final_status,
+                        remark,
+                        int(current_user.id),
+                    ),
+                )
+
+                cur.execute(
+                    """
+                    UPDATE employees
+                    SET department_id = %s,
+                        job_title_id = %s,
+                        status = %s,
+                        updated_at = NOW()
+                    WHERE id = %s
+                    """,
+                    (
+                        final_department_id,
+                        final_job_title_id,
+                        final_status,
+                        employee_id_value,
+                    ),
+                )
+
+                # 特殊狀態同步日期
+                if movement_type == "termination":
+                    cur.execute(
+                        """
+                        UPDATE employees
+                        SET leave_date = %s
+                        WHERE id = %s
+                        """,
+                        (effective_date, employee_id_value),
+                    )
+
+                if movement_type == "hire" and not employee["hire_date"]:
+                    cur.execute(
+                        """
+                        UPDATE employees
+                        SET hire_date = %s
+                        WHERE id = %s
+                        """,
+                        (effective_date, employee_id_value),
+                    )
+
+            conn.commit()
+
+        flash("任用異動建立成功", "success")
+        return redirect(url_for("employee_detail", employee_id=employee_id_value))
+
+    employees = get_active_employees_basic()
+    departments = get_departments(only_active=True)
+    job_titles = get_job_titles(only_active=True)
+
+    return render_template(
+        "hr/employee_movement_create.html",
+        employees=employees,
+        departments=departments,
+        job_titles=job_titles,
+        movement_types=get_employee_movement_types(),
+        selected_employee=selected_employee,
+    )
 
 
 

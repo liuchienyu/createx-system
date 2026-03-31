@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}任用異動紀錄 - Createx{% endblock %}
+{% block page_title %}任用異動紀錄{% endblock %}
+{% block page_subtitle %}管理員工到職、升遷、調部門、離職等歷程{% endblock %}
+
+{% block content %}
+<div class="card">
+    <form method="get" style="display:flex; gap:12px; align-items:end; flex-wrap:wrap;">
+        <div>
+            <label>異動類型</label>
+            <select name="movement_type">
+                <option value="">全部</option>
+                {% for value, label in movement_types %}
+                    <option value="{{ value }}" {% if movement_type == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <button type="submit">查詢</button>
+        </div>
+        {% if current_user.has_permission('edit_employee_movements') %}
+        <div>
+            <a class="btn" href="{{ url_for('employee_movement_create') }}">新增異動</a>
+        </div>
+        {% endif %}
+    </form>
+</div>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>日期</th>
+                <th>員工</th>
+                <th>類型</th>
+                <th>原部門 / 原職稱</th>
+                <th>新部門 / 新職稱</th>
+                <th>狀態變更</th>
+                <th>建立人</th>
+                <th>備註</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for m in movements %}
+            <tr>
+                <td>{{ m.effective_date }}</td>
+                <td>{{ m.employee_no }} - {{ m.employee_name }}</td>
+                <td>
+                    {% for value, label in movement_types %}
+                        {% if m.movement_type == value %}{{ label }}{% endif %}
+                    {% endfor %}
+                </td>
+                <td>{{ m.from_department_name or '' }} / {{ m.from_job_title_name or '' }}</td>
+                <td>{{ m.to_department_name or '' }} / {{ m.to_job_title_name or '' }}</td>
+                <td>{{ m.from_status or '' }} → {{ m.to_status or '' }}</td>
+                <td>{{ m.created_by_name or '' }}</td>
+                <td>{{ m.remark or '' }}</td>
+            </tr>
+            {% endfor %}
+            {% if not movements %}
+            <tr>
+                <td colspan="8">目前沒有異動紀錄</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

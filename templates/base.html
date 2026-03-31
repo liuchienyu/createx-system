@@ -9,50 +9,101 @@
 <body>
     <div class="app-layout">
         <aside class="sidebar">
-            <div class="brand">
-                <h2>Createx</h2>
-                <p>辦公系統</p>
+            <div class="sidebar-top">
+                <div class="brand">
+                    <h2>Createx</h2>
+                    <p>辦公系統</p>
+                </div>
+
+                {% if current_user.is_authenticated %}
+                <div class="sidebar-user-panel">
+                    <div class="sidebar-user-name">{{ current_user.display_name }}</div>
+                    <div class="sidebar-live-time">
+                        <span>現在時間</span>
+                        <strong id="live-clock"></strong>
+                    </div>
+                    <div class="sidebar-user-actions">
+                        <a class="sidebar-action-link" href="{{ url_for('logout') }}">登出</a>
+                    </div>
+                </div>
+                {% endif %}
             </div>
 
             {% if current_user.is_authenticated %}
             <nav class="nav-menu">
-                <a href="{{ url_for('dashboard') }}">首頁</a>
-                <a href="{{ url_for('my_permissions') }}">我的權限</a>
+                <a class="nav-link" href="{{ url_for('dashboard') }}">首頁儀表板</a>
 
-                {% if current_user.has_permission('admin_users') %}
-                <a href="{{ url_for('admin_users') }}">使用者管理</a>
-                {% endif %}
+                <details class="nav-group" open>
+                    <summary>個人功能</summary>
+                    <div class="nav-submenu">
+                        <a href="{{ url_for('my_permissions') }}">我的權限</a>
+                    </div>
+                </details>
 
-                {% if current_user.has_permission('admin_roles') %}
-                <a href="{{ url_for('admin_roles') }}">角色管理</a>
-                {% endif %}
-                <a href="{{ url_for('dashboard_owner') }}">老闆財務首頁</a>
                 {% if current_user.has_permission('view_finance') %}
-                <a href="{{ url_for('finance_dashboard') }}">財務儀表板</a>
-                <a href="{{ url_for('finance_index') }}">財務管理</a>
-                <a href="{{ url_for('finance_monthly_report') }}">月報表統計</a>
-                <a href="{{ url_for('finance_category_index') }}">財務分類管理</a>
-                {% endif %}
-                {% if current_user.has_permission('view_finance') %}
-                <a href="{{ url_for('ar_ap_index') }}">應收應付管理</a>
-                {% endif %}
-                <a href="{{ url_for('project_index') }}">專案管理</a>
-                {% if current_user.has_permission('view_hr') %}
-                <a href="{{ url_for('employees_index') }}">人資管理</a>
-                {% endif %}
-                {% if current_user.has_permission('view_departments') %}
-                <a href="{{ url_for('departments_index') }}">部門管理</a>
+                <details class="nav-group" open>
+                    <summary>財務管理</summary>
+                    <div class="nav-submenu">
+                        <a href="{{ url_for('dashboard_owner') }}">老闆財務首頁</a>
+                        <a href="{{ url_for('finance_dashboard') }}">財務儀表板</a>
+                        <a href="{{ url_for('finance_index') }}">財務紀錄管理</a>
+                        <a href="{{ url_for('finance_monthly_report') }}">月報表統計</a>
+                        <a href="{{ url_for('finance_category_index') }}">財務分類管理</a>
+                        <a href="{{ url_for('ar_ap_index') }}">應收應付管理</a>
+                    </div>
+                </details>
                 {% endif %}
 
-                {% if current_user.has_permission('view_job_titles') %}
-                <a href="{{ url_for('job_titles_index') }}">職稱管理</a>
+                <details class="nav-group" open>
+                    <summary>專案管理</summary>
+                    <div class="nav-submenu">
+                        <a href="{{ url_for('project_index') }}">專案列表</a>
+                        {% if current_user.has_permission('view_projects') %}
+                        <a href="{{ url_for('project_create') }}">新增專案</a>
+                        {% endif %}
+                    </div>
+                </details>
+
+                {% if current_user.has_permission('view_hr') or
+                      current_user.has_permission('view_departments') or
+                      current_user.has_permission('view_job_titles') or
+                      current_user.has_permission('view_employee_movements') %}
+                <details class="nav-group" open>
+                    <summary>人資管理</summary>
+                    <div class="nav-submenu">
+                        {% if current_user.has_permission('view_hr') %}
+                        <a href="{{ url_for('employees_index') }}">人員主檔</a>
+                        {% endif %}
+                        {% if current_user.has_permission('view_departments') %}
+                        <a href="{{ url_for('departments_index') }}">部門管理</a>
+                        {% endif %}
+                        {% if current_user.has_permission('view_job_titles') %}
+                        <a href="{{ url_for('job_titles_index') }}">職稱管理</a>
+                        {% endif %}
+                        {% if current_user.has_permission('view_employee_movements') %}
+                        <a href="{{ url_for('employee_movements_index') }}">任用異動紀錄</a>
+                        {% endif %}
+                    </div>
+                </details>
                 {% endif %}
-                
-                <a href="{{ url_for('logout') }}">登出</a>
+
+                {% if current_user.has_permission('admin_users') or current_user.has_permission('admin_roles') %}
+                <details class="nav-group">
+                    <summary>系統管理</summary>
+                    <div class="nav-submenu">
+                        {% if current_user.has_permission('admin_users') %}
+                        <a href="{{ url_for('admin_users') }}">使用者管理</a>
+                        {% endif %}
+                        {% if current_user.has_permission('admin_roles') %}
+                        <a href="{{ url_for('admin_roles') }}">角色管理</a>
+                        {% endif %}
+                    </div>
+                </details>
+                {% endif %}
             </nav>
             {% else %}
             <nav class="nav-menu">
-                <a href="{{ url_for('login') }}">登入</a>
+                <a class="nav-link" href="{{ url_for('login') }}">登入</a>
             </nav>
             {% endif %}
         </aside>
@@ -63,12 +114,6 @@
                     <h1 class="page-title">{% block page_title %}Createx 辦公系統{% endblock %}</h1>
                     <p class="page-subtitle">{% block page_subtitle %}內部管理平台{% endblock %}</p>
                 </div>
-
-                {% if current_user.is_authenticated %}
-                <div class="user-box">
-                    <span>{{ current_user.display_name }}</span>
-                </div>
-                {% endif %}
             </header>
 
             {% with messages = get_flashed_messages(with_categories=true) %}
@@ -88,5 +133,42 @@
             </section>
         </main>
     </div>
+
+    {% if current_user.is_authenticated %}
+    <script>
+        function updateClock() {
+            const now = new Date();
+
+            const options = {
+                timeZone: "Asia/Taipei",
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+                hour12: false
+            };
+
+            const formatter = new Intl.DateTimeFormat("zh-TW", options);
+            const parts = formatter.formatToParts(now);
+
+            const data = {};
+            parts.forEach(part => {
+                data[part.type] = part.value;
+            });
+
+            const formatted = `${data.year}-${data.month}-${data.day} ${data.hour}:${data.minute}:${data.second}`;
+
+            const clock = document.getElementById("live-clock");
+            if (clock) {
+                clock.textContent = formatted;
+            }
+        }
+
+        updateClock();
+        setInterval(updateClock, 1000);
+    </script>
+    {% endif %}
 </body>
 </html>

@@ -26,7 +26,46 @@
     <p><strong>系統帳號：</strong>{{ employee.username or '' }}</p>
     <p><strong>帳號顯示名稱：</strong>{{ employee.user_display_name or '' }}</p>
     <p><strong>備註：</strong>{{ employee.notes or '' }}</p>
+    <div class="card" style="margin-top:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <h3 style="margin:0;">任用異動歷程</h3>
+            {% if current_user.has_permission('edit_employee_movements') %}
+            <a class="btn btn-sm" href="{{ url_for('employee_movement_create') }}?employee_id={{ employee.id }}">新增異動</a>
+            {% endif %}
+        </div>
 
+        <table>
+            <thead>
+                <tr>
+                    <th>日期</th>
+                    <th>類型</th>
+                    <th>原部門 / 原職稱</th>
+                    <th>新部門 / 新職稱</th>
+                    <th>狀態變更</th>
+                    <th>建立人</th>
+                    <th>備註</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in movements %}
+                <tr>
+                    <td>{{ m.effective_date }}</td>
+                    <td>{{ movement_type_map.get(m.movement_type, m.movement_type) }}</td>
+                    <td>{{ m.from_department_name or '' }} / {{ m.from_job_title_name or '' }}</td>
+                    <td>{{ m.to_department_name or '' }} / {{ m.to_job_title_name or '' }}</td>
+                    <td>{{ m.from_status or '' }} → {{ m.to_status or '' }}</td>
+                    <td>{{ m.created_by_name or '' }}</td>
+                    <td>{{ m.remark or '' }}</td>
+                </tr>
+                {% endfor %}
+                {% if not movements %}
+                <tr>
+                    <td colspan="7">目前沒有異動紀錄</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
     <div style="margin-top:20px; display:flex; gap:10px; flex-wrap:wrap;">
         {% if current_user.has_permission('edit_hr') %}
         <a class="btn" href="{{ url_for('employee_edit', employee_id=employee.id) }}">編輯</a>

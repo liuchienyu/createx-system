@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}新增任用異動 - Createx{% endblock %}
+{% block page_title %}新增任用異動{% endblock %}
+{% block page_subtitle %}建立員工任用、升遷、轉調、離職等異動紀錄{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:900px;">
+    <form method="post">
+        <label>員工</label>
+        <select name="employee_id" required>
+            <option value="">請選擇</option>
+            {% for e in employees %}
+                <option value="{{ e.id }}" {% if selected_employee and selected_employee.id == e.id %}selected{% endif %}>
+                    {{ e.employee_no }} - {{ e.name }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <label>異動類型</label>
+        <select name="movement_type" required>
+            <option value="">請選擇</option>
+            {% for value, label in movement_types %}
+                <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+        </select>
+
+        <label>生效日期</label>
+        <input type="date" name="effective_date" required>
+
+        <label>新部門</label>
+        <select name="to_department_id">
+            <option value="">不變更</option>
+            {% for d in departments %}
+                <option value="{{ d.id }}">{{ d.name }}</option>
+            {% endfor %}
+        </select>
+
+        <label>新職稱</label>
+        <select name="to_job_title_id">
+            <option value="">不變更</option>
+            {% for jt in job_titles %}
+                <option value="{{ jt.id }}">{{ jt.name }}</option>
+            {% endfor %}
+        </select>
+
+        <label>新狀態</label>
+        <select name="to_status">
+            <option value="">不變更</option>
+            <option value="active">在職</option>
+            <option value="probation">試用</option>
+            <option value="leave">留停</option>
+            <option value="terminated">離職</option>
+        </select>
+
+        <label>備註</label>
+        <textarea name="remark" rows="4"></textarea>
+
+        <button type="submit">建立異動紀錄</button>
+    </form>
+</div>
+{% endblock %}

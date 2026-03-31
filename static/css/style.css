@@ -434,3 +434,122 @@ button.btn-secondary {
     width: 100% !important;
     height: 280px !important;
 }
+
+.sidebar-top {
+    padding-bottom: 18px;
+    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 16px;
+}
+
+.sidebar-user-panel {
+    margin-top: 14px;
+    padding: 12px;
+    border-radius: 14px;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+}
+
+.sidebar-user-name {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.sidebar-live-time {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 12px;
+}
+
+.sidebar-live-time strong {
+    font-size: 14px;
+    color: #111827;
+    font-weight: 700;
+}
+
+.sidebar-user-actions {
+    display: flex;
+    align-items: center;
+}
+
+.sidebar-action-link {
+    display: inline-block;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    color: #dc2626;
+}
+
+.sidebar-action-link:hover {
+    text-decoration: underline;
+}
+
+.nav-link {
+    display: block;
+    padding: 10px 12px;
+    border-radius: 10px;
+    text-decoration: none;
+    color: inherit;
+    margin-bottom: 8px;
+}
+
+.nav-link:hover {
+    background: #f3f4f6;
+}
+
+.nav-group {
+    margin-bottom: 10px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+}
+
+.nav-group summary {
+    cursor: pointer;
+    list-style: none;
+    padding: 12px 14px;
+    font-weight: 700;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.nav-group summary::-webkit-details-marker {
+    display: none;
+}
+
+.nav-group[open] summary {
+    background: #f3f4f6;
+}
+
+.nav-submenu {
+    display: flex;
+    flex-direction: column;
+    padding: 8px;
+}
+
+.nav-submenu a {
+    text-decoration: none;
+    color: inherit;
+    padding: 9px 10px;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.nav-submenu a:hover {
+    background: #eef2f7;
+}
+
+@media (max-width: 768px) {
+    .sidebar-user-panel {
+        padding: 10px;
+    }
+
+    .nav-group summary {
+        padding: 10px 12px;
+    }
+}

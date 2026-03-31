@@ -57,6 +57,9 @@
         {% if user.has_permission('view_job_titles') %}
             <li><a href="{{ url_for('job_titles_index') }}">職稱管理</a></li>
         {% endif %}
+        {% if user.has_permission('view_employee_movements') %}
+            <li><a href="{{ url_for('employee_movements_index') }}">任用異動紀錄</a></li>
+        {% endif %}
     </ul>
 </div>
 {% endblock %}
