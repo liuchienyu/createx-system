@@ -553,3 +553,97 @@ button.btn-secondary {
         padding: 10px 12px;
     }
 }
+
+:root {
+    --primary: #7c3aed;
+    --primary-light: #a78bfa;
+    --primary-dark: #5b21b6;
+
+    --bg-hover: #f3f0ff;
+    --bg-active: #ede9fe;
+
+    --text-main: #111827;
+    --text-sub: #6b7280;
+}
+
+/* ===== sidebar active ===== */
+.nav-link.active {
+    background: var(--bg-active);
+    color: var(--primary-dark);
+    font-weight: 700;
+}
+
+.nav-link.active:hover {
+    background: var(--bg-active);
+}
+
+/* ===== 子選單 ===== */
+.nav-submenu a.active {
+    background: var(--primary);
+    color: white;
+    font-weight: 600;
+}
+
+/* ===== hover ===== */
+.nav-link:hover,
+.nav-submenu a:hover {
+    background: var(--bg-hover);
+}
+
+/* ===== group header ===== */
+.nav-group summary {
+    color: var(--text-main);
+}
+
+.nav-group[open] summary {
+    background: var(--bg-active);
+    color: var(--primary-dark);
+}
+
+/* ===== brand ===== */
+.brand h2 {
+    color: var(--primary);
+}
+
+/* ===== sidebar user ===== */
+.sidebar-user-name {
+    color: var(--primary-dark);
+}
+
+/* ===== 時鐘 ===== */
+.sidebar-live-time strong {
+    color: var(--primary);
+}
+
+/* ===== 按鈕（全站統一） ===== */
+button,
+.btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+button:hover,
+.btn:hover {
+    background: var(--primary-dark);
+}
+
+/* ===== table hover ===== */
+table tr:hover {
+    background: #faf5ff;
+}
+
+/* ===== flash ===== */
+.flash-success {
+    background: #ede9fe;
+    color: var(--primary-dark);
+}
+
+.flash-danger {
+    background: #fee2e2;
+    color: #b91c1c;
+}
