@@ -14,88 +14,171 @@
                     <h2>Createx</h2>
                     <p>辦公系統</p>
                 </div>
-
-                {% if current_user.is_authenticated %}
-                <div class="sidebar-user-panel">
-                    <div class="sidebar-user-name">{{ current_user.display_name }}</div>
-                    <div class="sidebar-live-time">
-                        <span>現在時間</span>
-                        <strong id="live-clock"></strong>
-                    </div>
-                    <div class="sidebar-user-actions">
-                        <a class="sidebar-action-link" href="{{ url_for('logout') }}">登出</a>
-                    </div>
-                </div>
-                {% endif %}
             </div>
 
             {% if current_user.is_authenticated %}
-            <nav class="nav-menu">
-                <a class="nav-link" href="{{ url_for('dashboard') }}">首頁儀表板</a>
+            {% set ep = request.endpoint %}
 
-                <details class="nav-group" open>
+            <nav class="nav-menu">
+                <a class="nav-link {% if ep == 'dashboard' %}active{% endif %}"
+                   href="{{ url_for('dashboard') }}">
+                    首頁儀表板
+                </a>
+
+                <details class="nav-group" {% if ep == 'my_permissions' %}open{% endif %}>
                     <summary>個人功能</summary>
                     <div class="nav-submenu">
-                        <a href="{{ url_for('my_permissions') }}">我的權限</a>
+                        <a class="{% if ep == 'my_permissions' %}active{% endif %}"
+                           href="{{ url_for('my_permissions') }}">
+                            我的權限
+                        </a>
                     </div>
                 </details>
 
                 {% if current_user.has_permission('view_finance') %}
-                <details class="nav-group" open>
+                <details class="nav-group"
+                    {% if ep in [
+                        'dashboard_owner',
+                        'finance_dashboard',
+                        'finance_index',
+                        'finance_create',
+                        'finance_edit',
+                        'finance_monthly_report',
+                        'finance_category_index',
+                        'finance_category_create',
+                        'finance_category_edit',
+                        'ar_ap_index',
+                        'ar_ap_create',
+                        'ar_ap_edit'
+                    ] %}open{% endif %}>
                     <summary>財務管理</summary>
                     <div class="nav-submenu">
-                        <a href="{{ url_for('dashboard_owner') }}">老闆財務首頁</a>
-                        <a href="{{ url_for('finance_dashboard') }}">財務儀表板</a>
-                        <a href="{{ url_for('finance_index') }}">財務紀錄管理</a>
-                        <a href="{{ url_for('finance_monthly_report') }}">月報表統計</a>
-                        <a href="{{ url_for('finance_category_index') }}">財務分類管理</a>
-                        <a href="{{ url_for('ar_ap_index') }}">應收應付管理</a>
+                        <a class="{% if ep == 'dashboard_owner' %}active{% endif %}"
+                           href="{{ url_for('dashboard_owner') }}">
+                            老闆財務首頁
+                        </a>
+                        <a class="{% if ep == 'finance_dashboard' %}active{% endif %}"
+                           href="{{ url_for('finance_dashboard') }}">
+                            財務儀表板
+                        </a>
+                        <a class="{% if ep in ['finance_index', 'finance_create', 'finance_edit'] %}active{% endif %}"
+                           href="{{ url_for('finance_index') }}">
+                            財務紀錄管理
+                        </a>
+                        <a class="{% if ep == 'finance_monthly_report' %}active{% endif %}"
+                           href="{{ url_for('finance_monthly_report') }}">
+                            月報表統計
+                        </a>
+                        <a class="{% if ep in ['finance_category_index', 'finance_category_create', 'finance_category_edit'] %}active{% endif %}"
+                           href="{{ url_for('finance_category_index') }}">
+                            財務分類管理
+                        </a>
+                        <a class="{% if ep in ['ar_ap_index', 'ar_ap_create', 'ar_ap_edit'] %}active{% endif %}"
+                           href="{{ url_for('ar_ap_index') }}">
+                            應收應付管理
+                        </a>
                     </div>
                 </details>
                 {% endif %}
 
-                <details class="nav-group" open>
+                <details class="nav-group"
+                    {% if ep in [
+                        'project_index',
+                        'project_create',
+                        'project_edit',
+                        'project_detail',
+                        'project_finance_report'
+                    ] %}open{% endif %}>
                     <summary>專案管理</summary>
                     <div class="nav-submenu">
-                        <a href="{{ url_for('project_index') }}">專案列表</a>
-                        {% if current_user.has_permission('view_projects') %}
-                        <a href="{{ url_for('project_create') }}">新增專案</a>
-                        {% endif %}
+                        <a class="{% if ep in ['project_index', 'project_detail', 'project_finance_report'] %}active{% endif %}"
+                           href="{{ url_for('project_index') }}">
+                            專案列表
+                        </a>
+                        <a class="{% if ep == 'project_create' %}active{% endif %}"
+                           href="{{ url_for('project_create') }}">
+                            新增專案
+                        </a>
                     </div>
                 </details>
 
-                {% if current_user.has_permission('view_hr') or
-                      current_user.has_permission('view_departments') or
-                      current_user.has_permission('view_job_titles') or
-                      current_user.has_permission('view_employee_movements') %}
-                <details class="nav-group" open>
+                {% if current_user.has_permission('view_hr')
+                      or current_user.has_permission('view_departments')
+                      or current_user.has_permission('view_job_titles')
+                      or current_user.has_permission('view_employee_movements') %}
+                <details class="nav-group"
+                    {% if ep in [
+                        'employees_index',
+                        'employee_create',
+                        'employee_edit',
+                        'employee_detail',
+                        'departments_index',
+                        'department_create',
+                        'department_edit',
+                        'job_titles_index',
+                        'job_title_create',
+                        'job_title_edit',
+                        'employee_movements_index',
+                        'employee_movement_create'
+                    ] %}open{% endif %}>
                     <summary>人資管理</summary>
                     <div class="nav-submenu">
                         {% if current_user.has_permission('view_hr') %}
-                        <a href="{{ url_for('employees_index') }}">人員主檔</a>
+                        <a class="{% if ep in ['employees_index', 'employee_create', 'employee_edit', 'employee_detail'] %}active{% endif %}"
+                           href="{{ url_for('employees_index') }}">
+                            人員主檔
+                        </a>
                         {% endif %}
+
                         {% if current_user.has_permission('view_departments') %}
-                        <a href="{{ url_for('departments_index') }}">部門管理</a>
+                        <a class="{% if ep in ['departments_index', 'department_create', 'department_edit'] %}active{% endif %}"
+                           href="{{ url_for('departments_index') }}">
+                            部門管理
+                        </a>
                         {% endif %}
+
                         {% if current_user.has_permission('view_job_titles') %}
-                        <a href="{{ url_for('job_titles_index') }}">職稱管理</a>
+                        <a class="{% if ep in ['job_titles_index', 'job_title_create', 'job_title_edit'] %}active{% endif %}"
+                           href="{{ url_for('job_titles_index') }}">
+                            職稱管理
+                        </a>
                         {% endif %}
+
                         {% if current_user.has_permission('view_employee_movements') %}
-                        <a href="{{ url_for('employee_movements_index') }}">任用異動紀錄</a>
+                        <a class="{% if ep in ['employee_movements_index', 'employee_movement_create'] %}active{% endif %}"
+                           href="{{ url_for('employee_movements_index') }}">
+                            任用異動紀錄
+                        </a>
                         {% endif %}
                     </div>
                 </details>
                 {% endif %}
 
                 {% if current_user.has_permission('admin_users') or current_user.has_permission('admin_roles') %}
-                <details class="nav-group">
+                <details class="nav-group"
+                    {% if ep in [
+                        'admin_users',
+                        'create_user',
+                        'edit_user',
+                        'reset_user_password',
+                        'admin_roles',
+                        'create_role',
+                        'edit_role'
+                    ] %}open{% endif %}>
                     <summary>系統管理</summary>
                     <div class="nav-submenu">
                         {% if current_user.has_permission('admin_users') %}
-                        <a href="{{ url_for('admin_users') }}">使用者管理</a>
+                        <a class="{% if ep in ['admin_users', 'create_user', 'edit_user', 'reset_user_password'] %}active{% endif %}"
+                           href="{{ url_for('admin_users') }}">
+                            使用者管理
+                        </a>
                         {% endif %}
+
                         {% if current_user.has_permission('admin_roles') %}
-                        <a href="{{ url_for('admin_roles') }}">角色管理</a>
+                        <a class="{% if ep in ['admin_roles', 'create_role', 'edit_role'] %}active{% endif %}"
+                           href="{{ url_for('admin_roles') }}">
+                            角色管理
+                        </a>
                         {% endif %}
                     </div>
                 </details>
@@ -114,6 +197,21 @@
                     <h1 class="page-title">{% block page_title %}Createx 辦公系統{% endblock %}</h1>
                     <p class="page-subtitle">{% block page_subtitle %}內部管理平台{% endblock %}</p>
                 </div>
+
+                {% if current_user.is_authenticated %}
+                <div class="topbar-right">
+                    <div class="topbar-live-time">
+                        <span class="topbar-live-label">現在時間</span>
+                        <strong id="live-clock"></strong>
+                    </div>
+
+                    <div class="topbar-user-info">
+                        <span class="topbar-user-name">{{ current_user.display_name }}</span>
+                    </div>
+
+                    <a class="topbar-logout btn-secondary" href="{{ url_for('logout') }}">登出</a>
+                </div>
+                {% endif %}
             </header>
 
             {% with messages = get_flashed_messages(with_categories=true) %}
