@@ -37,6 +37,8 @@
                 <th>姓名</th>
                 <th>暱稱</th>
                 <th>電話</th>
+                <th>部門</th>
+                <th>職稱</th>
                 <th>狀態</th>
                 <th>到職日</th>
                 <th>系統帳號</th>
@@ -51,6 +53,8 @@
                 <td>{{ e.name }}</td>
                 <td>{{ e.nickname or '' }}</td>
                 <td>{{ e.phone or '' }}</td>
+                <td>{{ e.department_name or '' }}</td>
+                <td>{{ e.job_title_name or '' }}</td>
                 <td>{{ e.status }}</td>
                 <td>{{ e.hire_date or '' }}</td>
                 <td>{{ e.username or '' }}</td>

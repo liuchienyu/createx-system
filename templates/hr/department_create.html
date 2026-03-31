@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}新增部門 - Createx{% endblock %}
+{% block page_title %}新增部門{% endblock %}
+{% block page_subtitle %}建立新的部門資料{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:760px;">
+    <form method="post">
+        <label>部門名稱</label>
+        <input type="text" name="name" required>
+
+        <label>上層部門</label>
+        <select name="parent_id">
+            <option value="">無</option>
+            {% for d in parent_departments %}
+                <option value="{{ d.id }}">{{ d.name }}</option>
+            {% endfor %}
+        </select>
+
+        <label>排序</label>
+        <input type="number" name="sort_order" value="0">
+
+        <div style="margin:12px 0 18px;">
+            <label style="font-weight:normal;">
+                <input type="checkbox" name="is_active" checked>
+                啟用部門
+            </label>
+        </div>
+
+        <button type="submit">建立部門</button>
+    </form>
+</div>
+{% endblock %}

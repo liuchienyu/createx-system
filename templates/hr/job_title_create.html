@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}新增職稱 - Createx{% endblock %}
+{% block page_title %}新增職稱{% endblock %}
+{% block page_subtitle %}建立新的職稱資料{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:760px;">
+    <form method="post">
+        <label>職稱名稱</label>
+        <input type="text" name="name" required>
+
+        <label>職等</label>
+        <input type="number" name="level" value="1">
+
+        <label>排序</label>
+        <input type="number" name="sort_order" value="0">
+
+        <div style="margin:12px 0 18px;">
+            <label style="font-weight:normal;">
+                <input type="checkbox" name="is_active" checked>
+                啟用職稱
+            </label>
+        </div>
+
+        <button type="submit">建立職稱</button>
+    </form>
+</div>
+{% endblock %}

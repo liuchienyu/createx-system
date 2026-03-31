@@ -50,6 +50,13 @@
         {% if user.has_permission('view_hr') %}
             <li><a href="{{ url_for('employees_index') }}">人資管理</a></li>
         {% endif %}
+        {% if user.has_permission('view_departments') %}
+            <li><a href="{{ url_for('departments_index') }}">部門管理</a></li>
+        {% endif %}
+
+        {% if user.has_permission('view_job_titles') %}
+            <li><a href="{{ url_for('job_titles_index') }}">職稱管理</a></li>
+        {% endif %}
     </ul>
 </div>
 {% endblock %}

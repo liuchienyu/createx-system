@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}職稱管理 - Createx{% endblock %}
+{% block page_title %}職稱管理{% endblock %}
+{% block page_subtitle %}管理職稱、職等與排序{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h3 style="margin:0;">職稱列表</h3>
+        <a class="btn" href="{{ url_for('job_title_create') }}">新增職稱</a>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>職稱名稱</th>
+                <th>職等</th>
+                <th>排序</th>
+                <th>狀態</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for jt in job_titles %}
+            <tr>
+                <td>{{ jt.id }}</td>
+                <td>{{ jt.name }}</td>
+                <td>{{ jt.level }}</td>
+                <td>{{ jt.sort_order }}</td>
+                <td>{{ '啟用中' if jt.is_active else '停用' }}</td>
+                <td>
+                    <a class="btn btn-sm" href="{{ url_for('job_title_edit', title_id=jt.id) }}">編輯</a>
+                </td>
+            </tr>
+            {% endfor %}
+            {% if not job_titles %}
+            <tr>
+                <td colspan="6">目前沒有職稱資料</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

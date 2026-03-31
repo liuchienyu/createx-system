@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}編輯職稱 - Createx{% endblock %}
+{% block page_title %}編輯職稱{% endblock %}
+{% block page_subtitle %}修改職稱資料{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:760px;">
+    <form method="post">
+        <label>職稱名稱</label>
+        <input type="text" name="name" value="{{ job_title.name }}" required>
+
+        <label>職等</label>
+        <input type="number" name="level" value="{{ job_title.level }}">
+
+        <label>排序</label>
+        <input type="number" name="sort_order" value="{{ job_title.sort_order }}">
+
+        <div style="margin:12px 0 18px;">
+            <label style="font-weight:normal;">
+                <input type="checkbox" name="is_active" {% if job_title.is_active %}checked{% endif %}>
+                啟用職稱
+            </label>
+        </div>
+
+        <button type="submit">儲存變更</button>
+    </form>
+</div>
+{% endblock %}

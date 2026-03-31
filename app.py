@@ -59,6 +59,10 @@ PERMS = [
     ("admin_roles", "可管理角色"),
     ("view_hr", "可查看人資模組"),
     ("edit_hr", "可編輯人資模組"),
+    ("view_departments", "可查看部門管理"),
+    ("edit_departments", "可編輯部門管理"),
+    ("view_job_titles", "可查看職稱管理"),
+    ("edit_job_titles", "可編輯職稱管理"),
     ("view_tasks", "可查看 Tasks"),
     ("edit_tasks", "可編輯 Tasks"),
     ("view_approvals", "可查看公文簽核"),
@@ -93,6 +97,10 @@ DEFAULT_ROLES = {
             "approve_level_2",
             "view_hr",
             "edit_hr",
+            "view_departments",
+            "edit_departments",
+            "view_job_titles",
+            "edit_job_titles",
         ],
     },
     "Staff": {
@@ -107,6 +115,8 @@ DEFAULT_ROLES = {
             "view_approvals",
             "create_approvals",
             "view_hr",
+            "view_departments",
+            "view_job_titles",
         ],
     },
     "Viewer": {
@@ -195,6 +205,32 @@ def init_db() -> None:
 
             cur.execute(
                 """
+                CREATE TABLE IF NOT EXISTS departments (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR(100) NOT NULL UNIQUE,
+                    parent_id INTEGER REFERENCES departments(id) ON DELETE SET NULL,
+                    sort_order INTEGER NOT NULL DEFAULT 0,
+                    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+                    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+                );
+                """
+            )
+
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS job_titles (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR(100) NOT NULL UNIQUE,
+                    level INTEGER NOT NULL DEFAULT 1,
+                    sort_order INTEGER NOT NULL DEFAULT 0,
+                    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+                    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+                );
+                """
+            )
+
+            cur.execute(
+                """
                 CREATE TABLE IF NOT EXISTS employees (
                     id SERIAL PRIMARY KEY,
                     employee_no VARCHAR(50) UNIQUE,
@@ -218,7 +254,26 @@ def init_db() -> None:
                 );
                 """
             )
+            cur.execute(
+                """
+                ALTER TABLE employees
+                ADD COLUMN IF NOT EXISTS department_id INTEGER REFERENCES departments(id) ON DELETE SET NULL;
+                """
+            )
 
+            cur.execute(
+                """
+                ALTER TABLE employees
+                ADD COLUMN IF NOT EXISTS job_title_id INTEGER REFERENCES job_titles(id) ON DELETE SET NULL;
+                """
+            )
+
+            cur.execute(
+                """
+                ALTER TABLE employees
+                ADD COLUMN IF NOT EXISTS manager_employee_id INTEGER REFERENCES employees(id) ON DELETE SET NULL;
+                """
+            )
 
             cur.execute(
                 """
@@ -573,6 +628,54 @@ def generate_employee_no() -> str:
 
     return f"EMP{next_num:04d}"
 
+def get_departments(only_active: bool = True):
+    query = """
+        SELECT d.id, d.name, d.parent_id, d.sort_order, d.is_active,
+               p.name AS parent_name
+        FROM departments d
+        LEFT JOIN departments p ON p.id = d.parent_id
+    """
+    params = []
+
+    if only_active:
+        query += " WHERE d.is_active = TRUE"
+
+    query += " ORDER BY d.sort_order ASC, d.id ASC"
+
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, params)
+            return cur.fetchall()
+        
+def get_job_titles(only_active: bool = True):
+    query = """
+        SELECT id, name, level, sort_order, is_active
+        FROM job_titles
+    """
+    params = []
+
+    if only_active:
+        query += " WHERE is_active = TRUE"
+
+    query += " ORDER BY level ASC, sort_order ASC, id ASC"
+
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, params)
+            return cur.fetchall()
+
+def get_active_employees_basic():
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, employee_no, name
+                FROM employees
+                WHERE status IN ('active', 'probation', 'leave')
+                ORDER BY id DESC
+                """
+            )
+            return cur.fetchall()
 
 # =========================
 # User model
@@ -2983,20 +3086,24 @@ def employees_index():
     status = (request.args.get("status") or "").strip()
 
     query = """
-        SELECT e.id,
-               e.employee_no,
-               e.name,
-               e.english_name,
-               e.nickname,
-               e.phone,
-               e.email,
-               e.status,
-               e.hire_date,
-               e.user_id,
-               u.username
-        FROM employees e
-        LEFT JOIN users u ON u.id = e.user_id
-    """
+    SELECT e.id,
+           e.employee_no,
+           e.name,
+           e.english_name,
+           e.nickname,
+           e.phone,
+           e.email,
+           e.status,
+           e.hire_date,
+           e.user_id,
+           u.username,
+           d.name AS department_name,
+           jt.name AS job_title_name
+    FROM employees e
+    LEFT JOIN users u ON u.id = e.user_id
+    LEFT JOIN departments d ON d.id = e.department_id
+    LEFT JOIN job_titles jt ON jt.id = e.job_title_id
+"""
     params = []
 
     if status:
@@ -3036,6 +3143,9 @@ def employee_create():
         hire_date = (request.form.get("hire_date") or "").strip()
         leave_date = (request.form.get("leave_date") or "").strip()
         user_id = (request.form.get("user_id") or "").strip()
+        department_id = (request.form.get("department_id") or "").strip()
+        job_title_id = (request.form.get("job_title_id") or "").strip()
+        manager_employee_id = (request.form.get("manager_employee_id") or "").strip()
         notes = (request.form.get("notes") or "").strip()
 
         if not name:
@@ -3049,6 +3159,9 @@ def employee_create():
             status_value = "active"
 
         user_id_value = int(user_id) if user_id else None
+        department_id_value = int(department_id) if department_id else None
+        job_title_id_value = int(job_title_id) if job_title_id else None
+        manager_employee_id_value = int(manager_employee_id) if manager_employee_id else None
 
         with get_db() as conn:
             with conn.cursor() as cur:
@@ -3078,9 +3191,11 @@ def employee_create():
                         employee_no, name, english_name, nickname, gender,
                         birthday, phone, email, address,
                         emergency_contact_name, emergency_contact_phone,
-                        status, hire_date, leave_date, user_id, notes
+                        status, hire_date, leave_date, user_id,
+                        department_id, job_title_id, manager_employee_id,
+                        notes
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     (
                         employee_no,
@@ -3098,6 +3213,9 @@ def employee_create():
                         hire_date or None,
                         leave_date or None,
                         user_id_value,
+                        department_id_value,
+                        job_title_id_value,
+                        manager_employee_id_value,
                         notes,
                     ),
                 )
@@ -3120,13 +3238,19 @@ def employee_create():
             )
             available_users = cur.fetchall()
 
+    departments = get_departments(only_active=True)
+    job_titles = get_job_titles(only_active=True)
+    manager_employees = get_active_employees_basic()
     suggested_employee_no = generate_employee_no()
 
     return render_template(
-        "hr/employee_create.html",
-        available_users=available_users,
-        suggested_employee_no=suggested_employee_no,
-    )
+    "hr/employee_create.html",
+    available_users=available_users,
+    suggested_employee_no=suggested_employee_no,
+    departments=departments,
+    job_titles=job_titles,
+    manager_employees=manager_employees,
+)
 
 @app.route("/hr/employees/<int:employee_id>/edit", methods=["GET", "POST"])
 @login_required
@@ -3163,6 +3287,9 @@ def employee_edit(employee_id: int):
                 hire_date = (request.form.get("hire_date") or "").strip()
                 leave_date = (request.form.get("leave_date") or "").strip()
                 user_id = (request.form.get("user_id") or "").strip()
+                department_id = (request.form.get("department_id") or "").strip()
+                job_title_id = (request.form.get("job_title_id") or "").strip()
+                manager_employee_id = (request.form.get("manager_employee_id") or "").strip()
                 notes = (request.form.get("notes") or "").strip()
 
                 if not name:
@@ -3177,6 +3304,9 @@ def employee_edit(employee_id: int):
                     status_value = "active"
 
                 user_id_value = int(user_id) if user_id else None
+                department_id_value = int(department_id) if department_id else None
+                job_title_id_value = int(job_title_id) if job_title_id else None
+                manager_employee_id_value = int(manager_employee_id) if manager_employee_id else None
 
                 cur.execute(
                     """
@@ -3223,28 +3353,36 @@ def employee_edit(employee_id: int):
                         hire_date = %s,
                         leave_date = %s,
                         user_id = %s,
+                        department_id = %s,
+                        job_title_id = %s,
+                        manager_employee_id = %s,
                         notes = %s,
                         updated_at = NOW()
                     WHERE id = %s
                     """,
                     (
-                        employee_no,
-                        name,
-                        english_name,
-                        nickname,
-                        gender,
-                        birthday or None,
-                        phone,
-                        email,
-                        address,
-                        emergency_contact_name,
-                        emergency_contact_phone,
-                        status_value,
-                        hire_date or None,
-                        leave_date or None,
-                        user_id_value,
-                        notes,
-                        employee_id,
+                        (
+                            employee_no,
+                            name,
+                            english_name,
+                            nickname,
+                            gender,
+                            birthday or None,
+                            phone,
+                            email,
+                            address,
+                            emergency_contact_name,
+                            emergency_contact_phone,
+                            status_value,
+                            hire_date or None,
+                            leave_date or None,
+                            user_id_value,
+                            department_id_value,
+                            job_title_id_value,
+                            manager_employee_id_value,
+                            notes,
+                            employee_id,
+                        )
                     ),
                 )
                 conn.commit()
@@ -3253,6 +3391,9 @@ def employee_edit(employee_id: int):
                 return redirect(url_for("employees_index"))
 
     available_users = []
+    departments = get_departments(only_active=True)
+    job_titles = get_job_titles(only_active=True)
+    manager_employees = [e for e in get_active_employees_basic() if e["id"] != employee_id]
     with get_db() as conn_users:
         with conn_users.cursor() as cur_users:
             cur_users.execute(
@@ -3268,10 +3409,13 @@ def employee_edit(employee_id: int):
             available_users = cur_users.fetchall()
 
     return render_template(
-        "hr/employee_edit.html",
-        employee=employee,
-        available_users=available_users,
-    )
+    "hr/employee_edit.html",
+    employee=employee,
+    available_users=available_users,
+    departments=departments,
+    job_titles=job_titles,
+    manager_employees=manager_employees,
+)
 
 @app.route("/hr/employees/<int:employee_id>")
 @login_required
@@ -3280,22 +3424,276 @@ def employee_detail(employee_id: int):
     with get_db() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                """
-                SELECT e.*,
-                       u.username,
-                       u.display_name AS user_display_name
-                FROM employees e
-                LEFT JOIN users u ON u.id = e.user_id
-                WHERE e.id = %s
-                """,
-                (employee_id,),
-            )
+                    """
+                    SELECT e.*,
+                        u.username,
+                        u.display_name AS user_display_name,
+                        d.name AS department_name,
+                        jt.name AS job_title_name,
+                        m.name AS manager_name
+                    FROM employees e
+                    LEFT JOIN users u ON u.id = e.user_id
+                    LEFT JOIN departments d ON d.id = e.department_id
+                    LEFT JOIN job_titles jt ON jt.id = e.job_title_id
+                    LEFT JOIN employees m ON m.id = e.manager_employee_id
+                    WHERE e.id = %s
+                    """,
+                    (employee_id,),
+                )
             employee = cur.fetchone()
 
             if not employee:
                 abort(404)
 
     return render_template("hr/employee_detail.html", employee=employee)
+
+@app.route("/hr/departments")
+@login_required
+@permission_required("view_departments")
+def departments_index():
+    departments = get_departments(only_active=False)
+    return render_template("hr/departments_index.html", departments=departments)
+
+@app.route("/hr/departments/create", methods=["GET", "POST"])
+@login_required
+@permission_required("edit_departments")
+def department_create():
+    if request.method == "POST":
+        name = (request.form.get("name") or "").strip()
+        parent_id = (request.form.get("parent_id") or "").strip()
+        sort_order = (request.form.get("sort_order") or "0").strip()
+        is_active = request.form.get("is_active") == "on"
+
+        if not name:
+            flash("請輸入部門名稱", "danger")
+            return redirect(url_for("department_create"))
+
+        try:
+            sort_order_value = int(sort_order)
+        except ValueError:
+            flash("排序格式錯誤", "danger")
+            return redirect(url_for("department_create"))
+
+        parent_id_value = int(parent_id) if parent_id else None
+
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT id FROM departments WHERE name = %s", (name,))
+                exists = cur.fetchone()
+                if exists:
+                    flash("部門名稱已存在", "danger")
+                    return redirect(url_for("department_create"))
+
+                cur.execute(
+                    """
+                    INSERT INTO departments (name, parent_id, sort_order, is_active)
+                    VALUES (%s, %s, %s, %s)
+                    """,
+                    (name, parent_id_value, sort_order_value, is_active),
+                )
+            conn.commit()
+
+        flash("部門建立成功", "success")
+        return redirect(url_for("departments_index"))
+
+    parent_departments = get_departments(only_active=True)
+    return render_template("hr/department_create.html", parent_departments=parent_departments)
+
+@app.route("/hr/departments/<int:department_id>/edit", methods=["GET", "POST"])
+@login_required
+@permission_required("edit_departments")
+def department_edit(department_id: int):
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT *
+                FROM departments
+                WHERE id = %s
+                """,
+                (department_id,),
+            )
+            department = cur.fetchone()
+
+            if not department:
+                abort(404)
+
+            if request.method == "POST":
+                name = (request.form.get("name") or "").strip()
+                parent_id = (request.form.get("parent_id") or "").strip()
+                sort_order = (request.form.get("sort_order") or "0").strip()
+                is_active = request.form.get("is_active") == "on"
+
+                if not name:
+                    flash("請輸入部門名稱", "danger")
+                    return redirect(url_for("department_edit", department_id=department_id))
+
+                try:
+                    sort_order_value = int(sort_order)
+                except ValueError:
+                    flash("排序格式錯誤", "danger")
+                    return redirect(url_for("department_edit", department_id=department_id))
+
+                parent_id_value = int(parent_id) if parent_id else None
+
+                if parent_id_value == department_id:
+                    flash("上層部門不能是自己", "danger")
+                    return redirect(url_for("department_edit", department_id=department_id))
+
+                cur.execute(
+                    """
+                    SELECT id
+                    FROM departments
+                    WHERE name = %s AND id <> %s
+                    """,
+                    (name, department_id),
+                )
+                exists = cur.fetchone()
+                if exists:
+                    flash("部門名稱已被使用", "danger")
+                    return redirect(url_for("department_edit", department_id=department_id))
+
+                cur.execute(
+                    """
+                    UPDATE departments
+                    SET name = %s,
+                        parent_id = %s,
+                        sort_order = %s,
+                        is_active = %s
+                    WHERE id = %s
+                    """,
+                    (name, parent_id_value, sort_order_value, is_active, department_id),
+                )
+                conn.commit()
+
+                flash("部門更新成功", "success")
+                return redirect(url_for("departments_index"))
+
+    parent_departments = get_departments(only_active=False)
+    parent_departments = [d for d in parent_departments if d["id"] != department_id]
+
+    return render_template(
+        "hr/department_edit.html",
+        department=department,
+        parent_departments=parent_departments,
+    )
+
+@app.route("/hr/job-titles")
+@login_required
+@permission_required("view_job_titles")
+def job_titles_index():
+    job_titles = get_job_titles(only_active=False)
+    return render_template("hr/job_titles_index.html", job_titles=job_titles)
+
+@app.route("/hr/job-titles/create", methods=["GET", "POST"])
+@login_required
+@permission_required("edit_job_titles")
+def job_title_create():
+    if request.method == "POST":
+        name = (request.form.get("name") or "").strip()
+        level = (request.form.get("level") or "1").strip()
+        sort_order = (request.form.get("sort_order") or "0").strip()
+        is_active = request.form.get("is_active") == "on"
+
+        if not name:
+            flash("請輸入職稱名稱", "danger")
+            return redirect(url_for("job_title_create"))
+
+        try:
+            level_value = int(level)
+            sort_order_value = int(sort_order)
+        except ValueError:
+            flash("職等或排序格式錯誤", "danger")
+            return redirect(url_for("job_title_create"))
+
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT id FROM job_titles WHERE name = %s", (name,))
+                exists = cur.fetchone()
+                if exists:
+                    flash("職稱名稱已存在", "danger")
+                    return redirect(url_for("job_title_create"))
+
+                cur.execute(
+                    """
+                    INSERT INTO job_titles (name, level, sort_order, is_active)
+                    VALUES (%s, %s, %s, %s)
+                    """,
+                    (name, level_value, sort_order_value, is_active),
+                )
+            conn.commit()
+
+        flash("職稱建立成功", "success")
+        return redirect(url_for("job_titles_index"))
+
+    return render_template("hr/job_title_create.html")
+
+@app.route("/hr/job-titles/<int:title_id>/edit", methods=["GET", "POST"])
+@login_required
+@permission_required("edit_job_titles")
+def job_title_edit(title_id: int):
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT *
+                FROM job_titles
+                WHERE id = %s
+                """,
+                (title_id,),
+            )
+            job_title = cur.fetchone()
+
+            if not job_title:
+                abort(404)
+
+            if request.method == "POST":
+                name = (request.form.get("name") or "").strip()
+                level = (request.form.get("level") or "1").strip()
+                sort_order = (request.form.get("sort_order") or "0").strip()
+                is_active = request.form.get("is_active") == "on"
+
+                if not name:
+                    flash("請輸入職稱名稱", "danger")
+                    return redirect(url_for("job_title_edit", title_id=title_id))
+
+                try:
+                    level_value = int(level)
+                    sort_order_value = int(sort_order)
+                except ValueError:
+                    flash("職等或排序格式錯誤", "danger")
+                    return redirect(url_for("job_title_edit", title_id=title_id))
+
+                cur.execute(
+                    """
+                    SELECT id
+                    FROM job_titles
+                    WHERE name = %s AND id <> %s
+                    """,
+                    (name, title_id),
+                )
+                exists = cur.fetchone()
+                if exists:
+                    flash("職稱名稱已被使用", "danger")
+                    return redirect(url_for("job_title_edit", title_id=title_id))
+
+                cur.execute(
+                    """
+                    UPDATE job_titles
+                    SET name = %s,
+                        level = %s,
+                        sort_order = %s,
+                        is_active = %s
+                    WHERE id = %s
+                    """,
+                    (name, level_value, sort_order_value, is_active, title_id),
+                )
+                conn.commit()
+
+                flash("職稱更新成功", "success")
+                return redirect(url_for("job_titles_index"))
+
+    return render_template("hr/job_title_edit.html", job_title=job_title)
 
 
 

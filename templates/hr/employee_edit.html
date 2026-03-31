@@ -59,6 +59,32 @@
         <label>離職日</label>
         <input type="date" name="leave_date" value="{{ employee.leave_date or '' }}">
 
+        <label>部門</label>
+        <select name="department_id">
+            <option value="">請選擇</option>
+            {% for d in departments %}
+                <option value="{{ d.id }}" {% if employee.department_id == d.id %}selected{% endif %}>{{ d.name }}</option>
+            {% endfor %}
+        </select>
+
+        <label>職稱</label>
+        <select name="job_title_id">
+            <option value="">請選擇</option>
+            {% for jt in job_titles %}
+                <option value="{{ jt.id }}" {% if employee.job_title_id == jt.id %}selected{% endif %}>{{ jt.name }}</option>
+            {% endfor %}
+        </select>
+
+        <label>直屬主管</label>
+        <select name="manager_employee_id">
+            <option value="">請選擇</option>
+            {% for m in manager_employees %}
+                <option value="{{ m.id }}" {% if employee.manager_employee_id == m.id %}selected{% endif %}>
+                    {{ m.employee_no }} - {{ m.name }}
+                </option>
+            {% endfor %}
+        </select>
+
         <label>綁定系統帳號</label>
         <select name="user_id">
             <option value="">不綁定</option>

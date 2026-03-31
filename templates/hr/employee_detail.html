@@ -7,6 +7,9 @@
 {% block content %}
 <div class="card">
     <h2 style="margin-top:0;">{{ employee.name }}</h2>
+    <p><strong>部門：</strong>{{ employee.department_name or '' }}</p>
+    <p><strong>職稱：</strong>{{ employee.job_title_name or '' }}</p>
+    <p><strong>直屬主管：</strong>{{ employee.manager_name or '' }}</p>
     <p><strong>員工編號：</strong>{{ employee.employee_no }}</p>
     <p><strong>英文名：</strong>{{ employee.english_name or '' }}</p>
     <p><strong>暱稱：</strong>{{ employee.nickname or '' }}</p>

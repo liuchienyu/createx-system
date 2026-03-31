@@ -40,6 +40,13 @@
                 {% if current_user.has_permission('view_hr') %}
                 <a href="{{ url_for('employees_index') }}">人資管理</a>
                 {% endif %}
+                {% if current_user.has_permission('view_departments') %}
+                <a href="{{ url_for('departments_index') }}">部門管理</a>
+                {% endif %}
+
+                {% if current_user.has_permission('view_job_titles') %}
+                <a href="{{ url_for('job_titles_index') }}">職稱管理</a>
+                {% endif %}
                 
                 <a href="{{ url_for('logout') }}">登出</a>
             </nav>
