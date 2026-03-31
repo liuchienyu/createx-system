@@ -47,6 +47,9 @@
         {% if user.has_permission('view_finance') %}
             <li><a href="{{ url_for('ar_ap_index') }}">應收應付管理</a></li>
         {% endif %}
+        {% if user.has_permission('view_hr') %}
+            <li><a href="{{ url_for('employees_index') }}">人資管理</a></li>
+        {% endif %}
     </ul>
 </div>
 {% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}人員明細 - Createx{% endblock %}
+{% block page_title %}人員明細{% endblock %}
+{% block page_subtitle %}查看員工完整主檔資訊{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 style="margin-top:0;">{{ employee.name }}</h2>
+    <p><strong>員工編號：</strong>{{ employee.employee_no }}</p>
+    <p><strong>英文名：</strong>{{ employee.english_name or '' }}</p>
+    <p><strong>暱稱：</strong>{{ employee.nickname or '' }}</p>
+    <p><strong>性別：</strong>{{ employee.gender or '' }}</p>
+    <p><strong>生日：</strong>{{ employee.birthday or '' }}</p>
+    <p><strong>電話：</strong>{{ employee.phone or '' }}</p>
+    <p><strong>Email：</strong>{{ employee.email or '' }}</p>
+    <p><strong>地址：</strong>{{ employee.address or '' }}</p>
+    <p><strong>緊急聯絡人：</strong>{{ employee.emergency_contact_name or '' }}</p>
+    <p><strong>緊急聯絡電話：</strong>{{ employee.emergency_contact_phone or '' }}</p>
+    <p><strong>狀態：</strong>{{ employee.status }}</p>
+    <p><strong>到職日：</strong>{{ employee.hire_date or '' }}</p>
+    <p><strong>離職日：</strong>{{ employee.leave_date or '' }}</p>
+    <p><strong>系統帳號：</strong>{{ employee.username or '' }}</p>
+    <p><strong>帳號顯示名稱：</strong>{{ employee.user_display_name or '' }}</p>
+    <p><strong>備註：</strong>{{ employee.notes or '' }}</p>
+
+    <div style="margin-top:20px; display:flex; gap:10px; flex-wrap:wrap;">
+        {% if current_user.has_permission('edit_hr') %}
+        <a class="btn" href="{{ url_for('employee_edit', employee_id=employee.id) }}">編輯</a>
+        {% endif %}
+        <a class="btn" href="{{ url_for('employees_index') }}">回列表</a>
+    </div>
+</div>
+{% endblock %}

@@ -57,6 +57,8 @@ PERMS = [
     ("edit_finance", "可編輯 Finance"),
     ("admin_users", "可管理使用者"),
     ("admin_roles", "可管理角色"),
+    ("view_hr", "可查看人資模組"),
+    ("edit_hr", "可編輯人資模組"),
     ("view_tasks", "可查看 Tasks"),
     ("edit_tasks", "可編輯 Tasks"),
     ("view_approvals", "可查看公文簽核"),
@@ -89,6 +91,8 @@ DEFAULT_ROLES = {
             "create_approvals",
             "approve_approvals",
             "approve_level_2",
+            "view_hr",
+            "edit_hr",
         ],
     },
     "Staff": {
@@ -102,6 +106,7 @@ DEFAULT_ROLES = {
             "edit_tasks",
             "view_approvals",
             "create_approvals",
+            "view_hr",
         ],
     },
     "Viewer": {
@@ -187,6 +192,33 @@ def init_db() -> None:
                 );
                 """
             )
+
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS employees (
+                    id SERIAL PRIMARY KEY,
+                    employee_no VARCHAR(50) UNIQUE,
+                    name VARCHAR(100) NOT NULL,
+                    english_name VARCHAR(100),
+                    nickname VARCHAR(100),
+                    gender VARCHAR(20),
+                    birthday DATE,
+                    phone VARCHAR(50),
+                    email VARCHAR(120),
+                    address TEXT,
+                    emergency_contact_name VARCHAR(100),
+                    emergency_contact_phone VARCHAR(50),
+                    status VARCHAR(30) NOT NULL DEFAULT 'active',
+                    hire_date DATE,
+                    leave_date DATE,
+                    user_id INTEGER UNIQUE REFERENCES users(id) ON DELETE SET NULL,
+                    notes TEXT,
+                    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+                );
+                """
+            )
+
 
             cur.execute(
                 """
@@ -520,6 +552,27 @@ def parse_month_filter(month_str: str):
         return start_date, end_date
     except Exception:
         return None, None
+
+
+def generate_employee_no() -> str:
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id
+                FROM employees
+                ORDER BY id DESC
+                LIMIT 1
+                """
+            )
+            row = cur.fetchone()
+
+    next_num = 1
+    if row:
+        next_num = int(row["id"]) + 1
+
+    return f"EMP{next_num:04d}"
+
 
 # =========================
 # User model
@@ -2918,6 +2971,334 @@ def dashboard_owner():
         recent_finance_records=recent_finance_records,
         recent_projects=recent_projects,
     )
+
+# =========================
+# HR / Employees
+# =========================
+
+@app.route("/hr/employees")
+@login_required
+@permission_required("view_hr")
+def employees_index():
+    status = (request.args.get("status") or "").strip()
+
+    query = """
+        SELECT e.id,
+               e.employee_no,
+               e.name,
+               e.english_name,
+               e.nickname,
+               e.phone,
+               e.email,
+               e.status,
+               e.hire_date,
+               e.user_id,
+               u.username
+        FROM employees e
+        LEFT JOIN users u ON u.id = e.user_id
+    """
+    params = []
+
+    if status:
+        query += " WHERE e.status = %s"
+        params.append(status)
+
+    query += " ORDER BY e.id DESC"
+
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, params)
+            employees = cur.fetchall()
+
+    return render_template(
+        "hr/employees_index.html",
+        employees=employees,
+        status=status,
+    )
+
+@app.route("/hr/employees/create", methods=["GET", "POST"])
+@login_required
+@permission_required("edit_hr")
+def employee_create():
+    if request.method == "POST":
+        employee_no = (request.form.get("employee_no") or "").strip()
+        name = (request.form.get("name") or "").strip()
+        english_name = (request.form.get("english_name") or "").strip()
+        nickname = (request.form.get("nickname") or "").strip()
+        gender = (request.form.get("gender") or "").strip()
+        birthday = (request.form.get("birthday") or "").strip()
+        phone = (request.form.get("phone") or "").strip()
+        email = (request.form.get("email") or "").strip()
+        address = (request.form.get("address") or "").strip()
+        emergency_contact_name = (request.form.get("emergency_contact_name") or "").strip()
+        emergency_contact_phone = (request.form.get("emergency_contact_phone") or "").strip()
+        status_value = (request.form.get("status") or "").strip()
+        hire_date = (request.form.get("hire_date") or "").strip()
+        leave_date = (request.form.get("leave_date") or "").strip()
+        user_id = (request.form.get("user_id") or "").strip()
+        notes = (request.form.get("notes") or "").strip()
+
+        if not name:
+            flash("請輸入姓名", "danger")
+            return redirect(url_for("employee_create"))
+
+        if not employee_no:
+            employee_no = generate_employee_no()
+
+        if status_value not in ["active", "probation", "leave", "terminated"]:
+            status_value = "active"
+
+        user_id_value = int(user_id) if user_id else None
+
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT id FROM employees WHERE employee_no = %s", (employee_no,))
+                exists = cur.fetchone()
+                if exists:
+                    flash("員工編號已存在", "danger")
+                    return redirect(url_for("employee_create"))
+
+                if user_id_value:
+                    cur.execute(
+                        """
+                        SELECT id
+                        FROM employees
+                        WHERE user_id = %s
+                        """,
+                        (user_id_value,),
+                    )
+                    linked = cur.fetchone()
+                    if linked:
+                        flash("此系統帳號已綁定其他員工", "danger")
+                        return redirect(url_for("employee_create"))
+
+                cur.execute(
+                    """
+                    INSERT INTO employees (
+                        employee_no, name, english_name, nickname, gender,
+                        birthday, phone, email, address,
+                        emergency_contact_name, emergency_contact_phone,
+                        status, hire_date, leave_date, user_id, notes
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        employee_no,
+                        name,
+                        english_name,
+                        nickname,
+                        gender,
+                        birthday or None,
+                        phone,
+                        email,
+                        address,
+                        emergency_contact_name,
+                        emergency_contact_phone,
+                        status_value,
+                        hire_date or None,
+                        leave_date or None,
+                        user_id_value,
+                        notes,
+                    ),
+                )
+            conn.commit()
+
+        flash("人員資料建立成功", "success")
+        return redirect(url_for("employees_index"))
+
+    available_users = []
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT u.id, u.username, u.display_name
+                FROM users u
+                LEFT JOIN employees e ON e.user_id = u.id
+                WHERE e.id IS NULL
+                ORDER BY u.id DESC
+                """
+            )
+            available_users = cur.fetchall()
+
+    suggested_employee_no = generate_employee_no()
+
+    return render_template(
+        "hr/employee_create.html",
+        available_users=available_users,
+        suggested_employee_no=suggested_employee_no,
+    )
+
+@app.route("/hr/employees/<int:employee_id>/edit", methods=["GET", "POST"])
+@login_required
+@permission_required("edit_hr")
+def employee_edit(employee_id: int):
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT *
+                FROM employees
+                WHERE id = %s
+                """,
+                (employee_id,),
+            )
+            employee = cur.fetchone()
+
+            if not employee:
+                abort(404)
+
+            if request.method == "POST":
+                employee_no = (request.form.get("employee_no") or "").strip()
+                name = (request.form.get("name") or "").strip()
+                english_name = (request.form.get("english_name") or "").strip()
+                nickname = (request.form.get("nickname") or "").strip()
+                gender = (request.form.get("gender") or "").strip()
+                birthday = (request.form.get("birthday") or "").strip()
+                phone = (request.form.get("phone") or "").strip()
+                email = (request.form.get("email") or "").strip()
+                address = (request.form.get("address") or "").strip()
+                emergency_contact_name = (request.form.get("emergency_contact_name") or "").strip()
+                emergency_contact_phone = (request.form.get("emergency_contact_phone") or "").strip()
+                status_value = (request.form.get("status") or "").strip()
+                hire_date = (request.form.get("hire_date") or "").strip()
+                leave_date = (request.form.get("leave_date") or "").strip()
+                user_id = (request.form.get("user_id") or "").strip()
+                notes = (request.form.get("notes") or "").strip()
+
+                if not name:
+                    flash("請輸入姓名", "danger")
+                    return redirect(url_for("employee_edit", employee_id=employee_id))
+
+                if not employee_no:
+                    flash("請輸入員工編號", "danger")
+                    return redirect(url_for("employee_edit", employee_id=employee_id))
+
+                if status_value not in ["active", "probation", "leave", "terminated"]:
+                    status_value = "active"
+
+                user_id_value = int(user_id) if user_id else None
+
+                cur.execute(
+                    """
+                    SELECT id
+                    FROM employees
+                    WHERE employee_no = %s AND id <> %s
+                    """,
+                    (employee_no, employee_id),
+                )
+                exists = cur.fetchone()
+                if exists:
+                    flash("員工編號已被使用", "danger")
+                    return redirect(url_for("employee_edit", employee_id=employee_id))
+
+                if user_id_value:
+                    cur.execute(
+                        """
+                        SELECT id
+                        FROM employees
+                        WHERE user_id = %s AND id <> %s
+                        """,
+                        (user_id_value, employee_id),
+                    )
+                    linked = cur.fetchone()
+                    if linked:
+                        flash("此系統帳號已綁定其他員工", "danger")
+                        return redirect(url_for("employee_edit", employee_id=employee_id))
+
+                cur.execute(
+                    """
+                    UPDATE employees
+                    SET employee_no = %s,
+                        name = %s,
+                        english_name = %s,
+                        nickname = %s,
+                        gender = %s,
+                        birthday = %s,
+                        phone = %s,
+                        email = %s,
+                        address = %s,
+                        emergency_contact_name = %s,
+                        emergency_contact_phone = %s,
+                        status = %s,
+                        hire_date = %s,
+                        leave_date = %s,
+                        user_id = %s,
+                        notes = %s,
+                        updated_at = NOW()
+                    WHERE id = %s
+                    """,
+                    (
+                        employee_no,
+                        name,
+                        english_name,
+                        nickname,
+                        gender,
+                        birthday or None,
+                        phone,
+                        email,
+                        address,
+                        emergency_contact_name,
+                        emergency_contact_phone,
+                        status_value,
+                        hire_date or None,
+                        leave_date or None,
+                        user_id_value,
+                        notes,
+                        employee_id,
+                    ),
+                )
+                conn.commit()
+
+                flash("人員資料更新成功", "success")
+                return redirect(url_for("employees_index"))
+
+    available_users = []
+    with get_db() as conn_users:
+        with conn_users.cursor() as cur_users:
+            cur_users.execute(
+                """
+                SELECT u.id, u.username, u.display_name
+                FROM users u
+                LEFT JOIN employees e ON e.user_id = u.id
+                WHERE e.id IS NULL OR e.id = %s
+                ORDER BY u.id DESC
+                """,
+                (employee_id,),
+            )
+            available_users = cur_users.fetchall()
+
+    return render_template(
+        "hr/employee_edit.html",
+        employee=employee,
+        available_users=available_users,
+    )
+
+@app.route("/hr/employees/<int:employee_id>")
+@login_required
+@permission_required("view_hr")
+def employee_detail(employee_id: int):
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT e.*,
+                       u.username,
+                       u.display_name AS user_display_name
+                FROM employees e
+                LEFT JOIN users u ON u.id = e.user_id
+                WHERE e.id = %s
+                """,
+                (employee_id,),
+            )
+            employee = cur.fetchone()
+
+            if not employee:
+                abort(404)
+
+    return render_template("hr/employee_detail.html", employee=employee)
+
+
+
 
 # =========================
 # App start

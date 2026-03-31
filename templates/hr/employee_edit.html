@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}編輯人員 - Createx{% endblock %}
+{% block page_title %}編輯人員{% endblock %}
+{% block page_subtitle %}修改員工主檔資料{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:900px;">
+    <form method="post">
+        <label>員工編號</label>
+        <input type="text" name="employee_no" value="{{ employee.employee_no or '' }}" required>
+
+        <label>姓名</label>
+        <input type="text" name="name" value="{{ employee.name }}" required>
+
+        <label>英文名</label>
+        <input type="text" name="english_name" value="{{ employee.english_name or '' }}">
+
+        <label>暱稱</label>
+        <input type="text" name="nickname" value="{{ employee.nickname or '' }}">
+
+        <label>性別</label>
+        <select name="gender">
+            <option value="">請選擇</option>
+            <option value="male" {% if employee.gender == 'male' %}selected{% endif %}>男</option>
+            <option value="female" {% if employee.gender == 'female' %}selected{% endif %}>女</option>
+            <option value="other" {% if employee.gender == 'other' %}selected{% endif %}>其他</option>
+        </select>
+
+        <label>生日</label>
+        <input type="date" name="birthday" value="{{ employee.birthday or '' }}">
+
+        <label>電話</label>
+        <input type="text" name="phone" value="{{ employee.phone or '' }}">
+
+        <label>Email</label>
+        <input type="email" name="email" value="{{ employee.email or '' }}">
+
+        <label>地址</label>
+        <textarea name="address" rows="3">{{ employee.address or '' }}</textarea>
+
+        <label>緊急聯絡人姓名</label>
+        <input type="text" name="emergency_contact_name" value="{{ employee.emergency_contact_name or '' }}">
+
+        <label>緊急聯絡人電話</label>
+        <input type="text" name="emergency_contact_phone" value="{{ employee.emergency_contact_phone or '' }}">
+
+        <label>狀態</label>
+        <select name="status">
+            <option value="active" {% if employee.status == 'active' %}selected{% endif %}>在職</option>
+            <option value="probation" {% if employee.status == 'probation' %}selected{% endif %}>試用</option>
+            <option value="leave" {% if employee.status == 'leave' %}selected{% endif %}>留停</option>
+            <option value="terminated" {% if employee.status == 'terminated' %}selected{% endif %}>離職</option>
+        </select>
+
+        <label>到職日</label>
+        <input type="date" name="hire_date" value="{{ employee.hire_date or '' }}">
+
+        <label>離職日</label>
+        <input type="date" name="leave_date" value="{{ employee.leave_date or '' }}">
+
+        <label>綁定系統帳號</label>
+        <select name="user_id">
+            <option value="">不綁定</option>
+            {% for u in available_users %}
+                <option value="{{ u.id }}" {% if employee.user_id == u.id %}selected{% endif %}>
+                    {{ u.username }}{% if u.display_name %} - {{ u.display_name }}{% endif %}
+                </option>
+            {% endfor %}
+        </select>
+
+        <label>備註</label>
+        <textarea name="notes" rows="4">{{ employee.notes or '' }}</textarea>
+
+        <button type="submit">儲存變更</button>
+    </form>
+</div>
+{% endblock %}

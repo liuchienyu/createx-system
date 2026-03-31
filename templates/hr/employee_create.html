@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}新增人員 - Createx{% endblock %}
+{% block page_title %}新增人員{% endblock %}
+{% block page_subtitle %}建立員工主檔資料{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:900px;">
+    <form method="post">
+        <label>員工編號</label>
+        <input type="text" name="employee_no" value="{{ suggested_employee_no }}" placeholder="留空則自動產生">
+
+        <label>姓名</label>
+        <input type="text" name="name" required>
+
+        <label>英文名</label>
+        <input type="text" name="english_name">
+
+        <label>暱稱</label>
+        <input type="text" name="nickname">
+
+        <label>性別</label>
+        <select name="gender">
+            <option value="">請選擇</option>
+            <option value="male">男</option>
+            <option value="female">女</option>
+            <option value="other">其他</option>
+        </select>
+
+        <label>生日</label>
+        <input type="date" name="birthday">
+
+        <label>電話</label>
+        <input type="text" name="phone">
+
+        <label>Email</label>
+        <input type="email" name="email">
+
+        <label>地址</label>
+        <textarea name="address" rows="3"></textarea>
+
+        <label>緊急聯絡人姓名</label>
+        <input type="text" name="emergency_contact_name">
+
+        <label>緊急聯絡人電話</label>
+        <input type="text" name="emergency_contact_phone">
+
+        <label>狀態</label>
+        <select name="status">
+            <option value="active">在職</option>
+            <option value="probation">試用</option>
+            <option value="leave">留停</option>
+            <option value="terminated">離職</option>
+        </select>
+
+        <label>到職日</label>
+        <input type="date" name="hire_date">
+
+        <label>離職日</label>
+        <input type="date" name="leave_date">
+
+        <label>綁定系統帳號</label>
+        <select name="user_id">
+            <option value="">不綁定</option>
+            {% for u in available_users %}
+                <option value="{{ u.id }}">{{ u.username }}{% if u.display_name %} - {{ u.display_name }}{% endif %}</option>
+            {% endfor %}
+        </select>
+
+        <label>備註</label>
+        <textarea name="notes" rows="4"></textarea>
+
+        <button type="submit">建立人員</button>
+    </form>
+</div>
+{% endblock %}
