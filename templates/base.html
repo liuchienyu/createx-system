@@ -6,7 +6,7 @@
     <title>{% block title %}Createx 辦公系統{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body>
+<body class="sidebar-expanded">
     <div class="app-layout">
         <aside class="sidebar">
             <div class="sidebar-top">
@@ -197,7 +197,9 @@
                     <h1 class="page-title">{% block page_title %}Createx 辦公系統{% endblock %}</h1>
                     <p class="page-subtitle">{% block page_subtitle %}內部管理平台{% endblock %}</p>
                 </div>
-
+                <button id="sidebarToggle" class="btn btn-secondary btn-sm">
+                    ☰
+                </button>
                 {% if current_user.is_authenticated %}
                 <div class="topbar-right">
                     <div class="topbar-live-time">

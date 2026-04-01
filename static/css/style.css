@@ -812,3 +812,43 @@ table tr:last-child td {
         font-size: 13px;
     }
 }
+
+/* =========================
+   Sidebar Collapse
+========================= */
+
+.sidebar {
+    transition: width 0.25s ease;
+}
+
+.sidebar-collapsed .sidebar {
+    width: 80px;
+}
+
+.sidebar-collapsed .brand h2,
+.sidebar-collapsed .brand p {
+    display: none;
+}
+
+.sidebar-collapsed .nav-group summary {
+    font-size: 0;
+}
+
+.sidebar-collapsed .nav-submenu {
+    display: none;
+}
+
+.sidebar-collapsed .nav-link {
+    text-align: center;
+    font-size: 12px;
+}
+
+.sidebar-collapsed .nav-link::after {
+    content: attr(data-short);
+    font-size: 12px;
+}
+
+/* 主內容自動撐開 */
+.sidebar-collapsed .main-content {
+    margin-left: 0;
+}
