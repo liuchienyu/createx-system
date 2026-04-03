@@ -81,6 +81,7 @@ a {
     top: 0;
     height: 100vh;
     overflow-y: auto;
+    transition: width 0.25s ease, padding 0.25s ease;
 }
 
 .sidebar-top {
@@ -190,6 +191,49 @@ a {
 }
 
 /* =========================
+   Sidebar Collapse
+========================= */
+.sidebar-collapsed .sidebar {
+    width: 84px;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.sidebar-collapsed .brand h2,
+.sidebar-collapsed .brand p,
+.sidebar-collapsed .nav-text {
+    display: none;
+}
+
+.sidebar-collapsed .nav-link {
+    text-align: center;
+    padding: 12px 8px;
+}
+
+.sidebar-collapsed .nav-link::after {
+    content: attr(data-short);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.sidebar-collapsed .nav-group summary {
+    font-size: 0;
+    padding: 12px 8px;
+    text-align: center;
+}
+
+.sidebar-collapsed .nav-group summary::after {
+    content: "•";
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.sidebar-collapsed .nav-submenu {
+    display: none;
+}
+
+/* =========================
    Main
 ========================= */
 .main-content {
@@ -204,6 +248,12 @@ a {
     align-items: flex-start;
     gap: 16px;
     margin-bottom: 20px;
+}
+
+.topbar-left {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
 }
 
 .page-title {
@@ -257,6 +307,20 @@ a {
 .topbar-user-name {
     font-weight: 700;
     color: var(--neutral-800);
+}
+
+.topbar-user-link {
+    cursor: pointer;
+    transition: transform var(--transition-fast), background var(--transition-fast);
+}
+
+.topbar-user-link:hover {
+    background: var(--primary-100);
+    transform: translateY(-1px);
+}
+
+.topbar-logout {
+    min-width: 88px;
 }
 
 /* =========================
@@ -382,8 +446,7 @@ textarea:focus {
    Buttons
 ========================= */
 button,
-.btn,
-.topbar-logout {
+.btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -412,7 +475,6 @@ button:hover,
     background: linear-gradient(180deg, var(--primary-700) 0%, var(--primary-800) 100%);
 }
 
-.topbar-logout,
 .btn-secondary,
 button.btn-secondary {
     background: #ffffff;
@@ -421,7 +483,6 @@ button.btn-secondary {
     box-shadow: none;
 }
 
-.topbar-logout:hover,
 .btn-secondary:hover,
 button.btn-secondary:hover {
     background: var(--neutral-100);
@@ -758,6 +819,28 @@ table tr:last-child td {
         position: relative;
     }
 
+    .sidebar-collapsed .sidebar {
+        width: 100%;
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .sidebar-collapsed .brand h2,
+    .sidebar-collapsed .brand p,
+    .sidebar-collapsed .nav-text {
+        display: initial;
+    }
+
+    .sidebar-collapsed .nav-group summary {
+        font-size: 14px;
+        text-align: left;
+    }
+
+    .sidebar-collapsed .nav-group summary::after,
+    .sidebar-collapsed .nav-link::after {
+        content: none;
+    }
+
     .topbar {
         flex-direction: column;
         align-items: flex-start;
@@ -795,6 +878,10 @@ table tr:last-child td {
         grid-template-columns: 1fr;
     }
 
+    .topbar-left {
+        width: 100%;
+    }
+
     .topbar-right {
         flex-direction: column;
         align-items: stretch;
@@ -811,44 +898,4 @@ table tr:last-child td {
         padding: 10px 10px;
         font-size: 13px;
     }
-}
-
-/* =========================
-   Sidebar Collapse
-========================= */
-
-.sidebar {
-    transition: width 0.25s ease;
-}
-
-.sidebar-collapsed .sidebar {
-    width: 80px;
-}
-
-.sidebar-collapsed .brand h2,
-.sidebar-collapsed .brand p {
-    display: none;
-}
-
-.sidebar-collapsed .nav-group summary {
-    font-size: 0;
-}
-
-.sidebar-collapsed .nav-submenu {
-    display: none;
-}
-
-.sidebar-collapsed .nav-link {
-    text-align: center;
-    font-size: 12px;
-}
-
-.sidebar-collapsed .nav-link::after {
-    content: attr(data-short);
-    font-size: 12px;
-}
-
-/* 主內容自動撐開 */
-.sidebar-collapsed .main-content {
-    margin-left: 0;
 }

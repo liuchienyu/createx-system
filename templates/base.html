@@ -8,7 +8,7 @@
 </head>
 <body class="sidebar-expanded">
     <div class="app-layout">
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-top">
                 <div class="brand">
                     <h2>Createx</h2>
@@ -21,16 +21,17 @@
 
             <nav class="nav-menu">
                 <a class="nav-link {% if ep == 'dashboard' %}active{% endif %}"
-                   href="{{ url_for('dashboard') }}">
-                    首頁儀表板
+                   href="{{ url_for('dashboard') }}"
+                   data-short="首頁">
+                    <span class="nav-text">首頁儀表板</span>
                 </a>
 
                 <details class="nav-group" {% if ep == 'my_permissions' %}open{% endif %}>
-                    <summary>個人功能</summary>
+                    <summary><span class="nav-text">個人功能</span></summary>
                     <div class="nav-submenu">
                         <a class="{% if ep == 'my_permissions' %}active{% endif %}"
                            href="{{ url_for('my_permissions') }}">
-                            我的權限
+                            <span class="nav-text">我的權限</span>
                         </a>
                     </div>
                 </details>
@@ -51,31 +52,31 @@
                         'ar_ap_create',
                         'ar_ap_edit'
                     ] %}open{% endif %}>
-                    <summary>財務管理</summary>
+                    <summary><span class="nav-text">財務管理</span></summary>
                     <div class="nav-submenu">
                         <a class="{% if ep == 'dashboard_owner' %}active{% endif %}"
                            href="{{ url_for('dashboard_owner') }}">
-                            老闆財務首頁
+                            <span class="nav-text">老闆財務首頁</span>
                         </a>
                         <a class="{% if ep == 'finance_dashboard' %}active{% endif %}"
                            href="{{ url_for('finance_dashboard') }}">
-                            財務儀表板
+                            <span class="nav-text">財務儀表板</span>
                         </a>
                         <a class="{% if ep in ['finance_index', 'finance_create', 'finance_edit'] %}active{% endif %}"
                            href="{{ url_for('finance_index') }}">
-                            財務紀錄管理
+                            <span class="nav-text">財務紀錄管理</span>
                         </a>
                         <a class="{% if ep == 'finance_monthly_report' %}active{% endif %}"
                            href="{{ url_for('finance_monthly_report') }}">
-                            月報表統計
+                            <span class="nav-text">月報表統計</span>
                         </a>
                         <a class="{% if ep in ['finance_category_index', 'finance_category_create', 'finance_category_edit'] %}active{% endif %}"
                            href="{{ url_for('finance_category_index') }}">
-                            財務分類管理
+                            <span class="nav-text">財務分類管理</span>
                         </a>
                         <a class="{% if ep in ['ar_ap_index', 'ar_ap_create', 'ar_ap_edit'] %}active{% endif %}"
                            href="{{ url_for('ar_ap_index') }}">
-                            應收應付管理
+                            <span class="nav-text">應收應付管理</span>
                         </a>
                     </div>
                 </details>
@@ -89,15 +90,15 @@
                         'project_detail',
                         'project_finance_report'
                     ] %}open{% endif %}>
-                    <summary>專案管理</summary>
+                    <summary><span class="nav-text">專案管理</span></summary>
                     <div class="nav-submenu">
                         <a class="{% if ep in ['project_index', 'project_detail', 'project_finance_report'] %}active{% endif %}"
                            href="{{ url_for('project_index') }}">
-                            專案列表
+                            <span class="nav-text">專案列表</span>
                         </a>
                         <a class="{% if ep == 'project_create' %}active{% endif %}"
                            href="{{ url_for('project_create') }}">
-                            新增專案
+                            <span class="nav-text">新增專案</span>
                         </a>
                     </div>
                 </details>
@@ -121,33 +122,33 @@
                         'employee_movements_index',
                         'employee_movement_create'
                     ] %}open{% endif %}>
-                    <summary>人資管理</summary>
+                    <summary><span class="nav-text">人資管理</span></summary>
                     <div class="nav-submenu">
                         {% if current_user.has_permission('view_hr') %}
                         <a class="{% if ep in ['employees_index', 'employee_create', 'employee_edit', 'employee_detail'] %}active{% endif %}"
                            href="{{ url_for('employees_index') }}">
-                            人員主檔
+                            <span class="nav-text">人員主檔</span>
                         </a>
                         {% endif %}
 
                         {% if current_user.has_permission('view_departments') %}
                         <a class="{% if ep in ['departments_index', 'department_create', 'department_edit'] %}active{% endif %}"
                            href="{{ url_for('departments_index') }}">
-                            部門管理
+                            <span class="nav-text">部門管理</span>
                         </a>
                         {% endif %}
 
                         {% if current_user.has_permission('view_job_titles') %}
                         <a class="{% if ep in ['job_titles_index', 'job_title_create', 'job_title_edit'] %}active{% endif %}"
                            href="{{ url_for('job_titles_index') }}">
-                            職稱管理
+                            <span class="nav-text">職稱管理</span>
                         </a>
                         {% endif %}
 
                         {% if current_user.has_permission('view_employee_movements') %}
                         <a class="{% if ep in ['employee_movements_index', 'employee_movement_create'] %}active{% endif %}"
                            href="{{ url_for('employee_movements_index') }}">
-                            任用異動紀錄
+                            <span class="nav-text">任用異動紀錄</span>
                         </a>
                         {% endif %}
                     </div>
@@ -165,19 +166,19 @@
                         'create_role',
                         'edit_role'
                     ] %}open{% endif %}>
-                    <summary>系統管理</summary>
+                    <summary><span class="nav-text">系統管理</span></summary>
                     <div class="nav-submenu">
                         {% if current_user.has_permission('admin_users') %}
                         <a class="{% if ep in ['admin_users', 'create_user', 'edit_user', 'reset_user_password'] %}active{% endif %}"
                            href="{{ url_for('admin_users') }}">
-                            使用者管理
+                            <span class="nav-text">使用者管理</span>
                         </a>
                         {% endif %}
 
                         {% if current_user.has_permission('admin_roles') %}
                         <a class="{% if ep in ['admin_roles', 'create_role', 'edit_role'] %}active{% endif %}"
                            href="{{ url_for('admin_roles') }}">
-                            角色管理
+                            <span class="nav-text">角色管理</span>
                         </a>
                         {% endif %}
                     </div>
@@ -186,20 +187,24 @@
             </nav>
             {% else %}
             <nav class="nav-menu">
-                <a class="nav-link" href="{{ url_for('login') }}">登入</a>
+                <a class="nav-link" href="{{ url_for('login') }}">
+                    <span class="nav-text">登入</span>
+                </a>
             </nav>
             {% endif %}
         </aside>
 
         <main class="main-content">
             <header class="topbar">
-                <div>
-                    <h1 class="page-title">{% block page_title %}Createx 辦公系統{% endblock %}</h1>
-                    <p class="page-subtitle">{% block page_subtitle %}內部管理平台{% endblock %}</p>
+                <div class="topbar-left">
+                    <button id="sidebarToggle" class="btn btn-secondary btn-sm" type="button">☰</button>
+
+                    <div>
+                        <h1 class="page-title">{% block page_title %}Createx 辦公系統{% endblock %}</h1>
+                        <p class="page-subtitle">{% block page_subtitle %}內部管理平台{% endblock %}</p>
+                    </div>
                 </div>
-                <button id="sidebarToggle" class="btn btn-secondary btn-sm">
-                    ☰
-                </button>
+
                 {% if current_user.is_authenticated %}
                 <div class="topbar-right">
                     <div class="topbar-live-time">
@@ -207,11 +212,18 @@
                         <strong id="live-clock"></strong>
                     </div>
 
+                    {% if current_user.employee_id is defined and current_user.employee_id %}
+                    <a class="topbar-user-info topbar-user-link"
+                       href="{{ url_for('employee_detail', employee_id=current_user.employee_id) }}">
+                        <span class="topbar-user-name">{{ current_user.display_name }}</span>
+                    </a>
+                    {% else %}
                     <div class="topbar-user-info">
                         <span class="topbar-user-name">{{ current_user.display_name }}</span>
                     </div>
+                    {% endif %}
 
-                    <a class="topbar-logout btn-secondary" href="{{ url_for('logout') }}">登出</a>
+                    <a class="topbar-logout btn btn-secondary" href="{{ url_for('logout') }}">登出</a>
                 </div>
                 {% endif %}
             </header>
@@ -268,6 +280,25 @@
 
         updateClock();
         setInterval(updateClock, 1000);
+
+        const toggleBtn = document.getElementById("sidebarToggle");
+        const body = document.body;
+
+        const savedState = localStorage.getItem("sidebarCollapsed");
+        if (savedState === "true") {
+            body.classList.remove("sidebar-expanded");
+            body.classList.add("sidebar-collapsed");
+        }
+
+        if (toggleBtn) {
+            toggleBtn.addEventListener("click", () => {
+                body.classList.toggle("sidebar-collapsed");
+                body.classList.toggle("sidebar-expanded");
+
+                const isCollapsed = body.classList.contains("sidebar-collapsed");
+                localStorage.setItem("sidebarCollapsed", isCollapsed);
+            });
+        }
     </script>
     {% endif %}
 </body>
